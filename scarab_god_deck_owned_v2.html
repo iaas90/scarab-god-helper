@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Scarab God — Your Deck v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#08090d; --bg2:#0e1016; --bg3:#14161e; --bg4:#1b1e28;
+    --border:#252834; --border2:#30354a;
+    --gold:#c9a84c; --gold2:#e8c870; --gold3:#f5dfa0;
+    --blue:#5aabff; --green:#3ecf8e; --red:#e05c5c;
+    --purple:#b39dfa; --orange:#f0a050; --teal:#2dd4bf;
+    --text:#e4e2da; --text2:#9e9b92; --text3:#5c596e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{background:var(--bg);color:var(--text);font-family:'Crimson Pro',Georgia,serif;font-size:14px;}
+  body{max-width:1100px;margin:0 auto;padding:20px 16px 60px;}
+
+  .hdr{position:relative;overflow:hidden;background:linear-gradient(135deg,#0c0e16,#161824,#0b0d14);border:1px solid var(--border2);border-radius:14px;padding:28px 32px 22px;margin-bottom:18px;}
+  .hdr::before{content:'';position:absolute;top:-60px;right:-60px;width:280px;height:280px;background:radial-gradient(circle,rgba(201,168,76,.09),transparent 70%);pointer-events:none;}
+  .hdr::after{content:'';position:absolute;bottom:-30px;left:60px;width:400px;height:120px;background:radial-gradient(ellipse,rgba(62,207,142,.05),transparent 70%);pointer-events:none;}
+  .hdr-title{font-family:'Cinzel',serif;font-size:26px;font-weight:900;color:var(--gold2);letter-spacing:.05em;margin-bottom:4px;text-shadow:0 0 40px rgba(201,168,76,.3);}
+  .hdr-sub{font-size:13px;color:var(--text2);font-style:italic;margin-bottom:18px;}
+  .stats{display:flex;flex-wrap:wrap;gap:10px;padding-top:16px;border-top:1px solid var(--border);}
+  .stat{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:10px 14px;text-align:center;min-width:86px;}
+  .stat-v{font-family:'Cinzel',serif;font-size:18px;font-weight:700;}
+  .stat-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-top:2px;}
+
+  /* NEW combo highlight banner */
+  .new-combo-banner{background:linear-gradient(135deg,rgba(62,207,142,.1),rgba(201,168,76,.06));border:1px solid rgba(62,207,142,.3);border-radius:10px;padding:14px 18px;margin-bottom:16px;}
+  .ncb-title{font-family:'Cinzel',serif;font-size:13px;color:var(--green);font-weight:700;letter-spacing:.06em;margin-bottom:8px;}
+  .ncb-body{font-size:12px;color:var(--text2);line-height:1.65;}
+  .ncb-body strong{color:var(--gold);}
+
+  .legend{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px;align-items:center;}
+  .leg{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:4px 10px;border-radius:20px;}
+  .l-owned{background:rgba(62,207,142,.08);border:1px solid rgba(62,207,142,.22);color:var(--green);}
+  .l-new-owned{background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.25);color:var(--teal);}
+  .l-swap{background:rgba(240,160,80,.08);border:1px solid rgba(240,160,80,.25);color:var(--orange);}
+  .l-buy{background:rgba(90,171,255,.07);border:1px solid rgba(90,171,255,.2);color:var(--blue);}
+  .l-proxy{background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.2);color:var(--gold);}
+
+  .tabs{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:-1px;position:relative;z-index:2;}
+  .tab{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.07em;padding:9px 15px;cursor:pointer;border:1px solid transparent;border-bottom:none;border-radius:7px 7px 0 0;background:var(--bg3);color:var(--text3);transition:all .2s;}
+  .tab:hover{color:var(--text2);background:var(--bg2);}
+  .tab.active{background:var(--bg2);border-color:var(--border2);color:var(--gold);}
+  .panel{display:none;border:1px solid var(--border2);border-radius:0 10px 10px 10px;background:var(--bg2);padding:16px;position:relative;z-index:1;}
+  .panel.active{display:block;}
+
+  .info{background:rgba(62,207,142,.05);border:1px solid rgba(62,207,142,.18);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.7;}
+  .info strong{color:var(--green);}
+  .info a{color:var(--blue);text-decoration:underline;}
+
+  .sec{background:var(--bg3);border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:8px;}
+  .sec-hd{display:flex;justify-content:space-between;align-items:center;padding:8px 13px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);}
+  .sec-title{font-family:'Cinzel',serif;font-size:10px;letter-spacing:.12em;color:var(--gold);font-weight:700;}
+  .sec-meta{font-size:10px;color:var(--text3);display:flex;align-items:center;gap:8px;}
+  .sec-cost{color:var(--text2);font-weight:600;}
+  .sec-owned-ct{font-size:9px;color:var(--green);}
+
+  .crow{display:flex;align-items:center;gap:5px;padding:5px 13px;border-bottom:1px solid rgba(255,255,255,.035);transition:background .12s;}
+  .crow:last-child{border-bottom:none;}
+  .crow:hover{background:rgba(255,255,255,.025);}
+  .crow.owned{background:rgba(62,207,142,.07);}
+  .crow.owned:hover{background:rgba(62,207,142,.11);}
+  .crow.owned-new{background:rgba(45,212,191,.06);}
+  .crow.owned-new:hover{background:rgba(45,212,191,.1);}
+
+  .cname{font-size:13px;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none;transition:color .15s;}
+  .cname:hover{color:var(--gold2);}
+  .cnote{font-size:10px;color:var(--text3);max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic;flex-shrink:0;}
+  .cprice{font-size:12px;font-weight:600;min-width:52px;text-align:right;flex-shrink:0;font-family:'Cinzel',serif;}
+  .cbtns{display:flex;gap:3px;flex-shrink:0;}
+  .btn-tcg{font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(90,171,255,.1);color:var(--blue);border:1px solid rgba(90,171,255,.2);text-decoration:none;font-family:'Cinzel',serif;letter-spacing:.04em;transition:all .15s;white-space:nowrap;}
+  .btn-tcg:hover{background:rgba(90,171,255,.2);}
+  .btn-proxy{font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.2);text-decoration:none;font-family:'Cinzel',serif;letter-spacing:.04em;transition:all .15s;white-space:nowrap;}
+  .btn-proxy:hover{background:rgba(201,168,76,.2);}
+
+  .bdg{font-size:8px;padding:1px 6px;border-radius:3px;font-weight:700;letter-spacing:.05em;flex-shrink:0;font-family:'Cinzel',serif;}
+  .b-owned{background:rgba(62,207,142,.15);color:var(--green);border:1px solid rgba(62,207,142,.3);}
+  .b-ownednew{background:rgba(45,212,191,.15);color:var(--teal);border:1px solid rgba(45,212,191,.3);}
+  .b-swap{background:rgba(240,160,80,.13);color:var(--orange);border:1px solid rgba(240,160,80,.25);}
+  .b-combo{background:rgba(201,168,76,.12);color:var(--gold);border:1px solid rgba(201,168,76,.2);}
+  .b-new{background:rgba(179,157,250,.12);color:var(--purple);border:1px solid rgba(179,157,250,.25);}
+  .b-proxy{background:rgba(201,168,76,.1);color:var(--gold2);border:1px solid rgba(201,168,76,.2);}
+  .b-buy{background:rgba(90,171,255,.1);color:var(--blue);border:1px solid rgba(90,171,255,.2);}
+
+  /* Shopping */
+  .shop-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px;}
+  .shop-card{background:var(--bg3);border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+  .shop-head{padding:9px 13px;border-bottom:1px solid var(--border);font-family:'Cinzel',serif;font-size:10px;letter-spacing:.08em;}
+  .shop-row{display:flex;justify-content:space-between;align-items:center;padding:5px 13px;border-bottom:1px solid rgba(255,255,255,.03);gap:8px;}
+  .shop-row:last-child{border-bottom:none;}
+  .shop-name{font-size:12px;color:var(--text);text-decoration:none;flex:1;transition:color .15s;}
+  .shop-name:hover{color:var(--gold2);}
+  .shop-price{font-size:12px;font-weight:600;font-family:'Cinzel',serif;flex-shrink:0;}
+
+  .summary{background:linear-gradient(135deg,rgba(62,207,142,.08),rgba(201,168,76,.04));border:1px solid rgba(62,207,142,.22);border-radius:10px;padding:16px 18px;margin-bottom:14px;}
+  .sum-title{font-family:'Cinzel',serif;font-size:13px;color:var(--green);font-weight:700;letter-spacing:.06em;margin-bottom:10px;}
+  .sum-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12px;}
+  .sum-row:last-child{border-bottom:none;}
+  .sum-label{color:var(--text2);}
+  .sum-val{font-weight:600;font-family:'Cinzel',serif;}
+
+  /* Combo */
+  .combo-card{background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.18);border-radius:9px;padding:14px 16px;margin-bottom:10px;}
+  .combo-card.yours{background:rgba(62,207,142,.06);border-color:rgba(62,207,142,.25);}
+  .combo-title{font-family:'Cinzel',serif;font-size:14px;color:var(--gold2);font-weight:700;margin-bottom:4px;}
+  .combo-title.yours{color:var(--green);}
+  .combo-pieces{font-size:11px;color:var(--gold);font-weight:500;margin-bottom:8px;letter-spacing:.02em;}
+  .combo-win{display:inline-flex;font-size:10px;padding:2px 10px;border-radius:3px;background:rgba(62,207,142,.1);color:var(--green);border:1px solid rgba(62,207,142,.2);margin-bottom:10px;font-family:'Cinzel',serif;letter-spacing:.05em;}
+  .step{display:flex;gap:8px;margin-bottom:4px;}
+  .step-n{font-family:'Cinzel',serif;font-size:10px;color:var(--gold);min-width:16px;font-weight:700;}
+  .step-t{font-size:12px;color:var(--text2);line-height:1.55;}
+
+  .swaps-card{background:rgba(240,160,80,.05);border:1px solid rgba(240,160,80,.2);border-radius:9px;padding:13px 16px;margin-bottom:8px;}
+
+  @media print{
+    .tabs,.tab,.cbtns,.legend,.new-combo-banner{display:none!important;}
+    .panel{display:block!important;border:none;padding:0;}
+    body{background:white;color:#000;}
+    .sec{border:1px solid #ccc;margin-bottom:6px;}
+    .crow.owned{background:#e8f5e9;}
+    .crow.owned-new{background:#e0f7fa;}
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-title">⚰ THE SCARAB GOD — YOUR DECK</div>
+  <div class="hdr-sub">Updated with all 5 photos · 7 Infinite Combos · May 2026</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" style="color:var(--green)" id="sv-owned-ct">0</div><div class="stat-l">Cards Owned</div></div>
+    <div class="stat"><div class="stat-v" style="color:var(--green)" id="sv-owned-val">$0</div><div class="stat-l">Value Owned</div></div>
+    <div class="stat"><div class="stat-v" style="color:var(--teal)" id="sv-new-owned">0</div><div class="stat-l">New From Img 5</div></div>
+    <div class="stat"><div class="stat-v" style="color:var(--blue)" id="sv-need-ct">0</div><div class="stat-l">Still Need</div></div>
+    <div class="stat"><div class="stat-v" style="color:var(--red)" id="sv-buy-cost">$0</div><div class="stat-l">Buy Cost Real</div></div>
+    <div class="stat"><div class="stat-v" style="color:var(--gold)" id="sv-proxy-cost">$0</div><div class="stat-l">Buy + Proxy</div></div>
+    <div class="stat"><div class="stat-v" style="color:var(--purple)">7</div><div class="stat-l">Combos</div></div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+      <button onclick="window.print()" style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:.07em;padding:8px 14px;cursor:pointer;background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.3);border-radius:6px;">🖨 PRINT</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW COMBO HIGHLIGHT -->
+<div class="new-combo-banner">
+  <div class="ncb-title">🆕 NEW COMBO DISCOVERED — YOU OWN ALL 3 PIECES!</div>
+  <div class="ncb-body">
+    <strong>Putrid Goblin + Altar of Dementia + Thran Vigil = Infinite Mill + Infinite Drain</strong><br>
+    Putrid Goblin has <strong>persist</strong> — when it dies it returns with a -1/-1 counter. Sacrifice it to Altar of Dementia to mill. Persist brings it back with -1/-1. Thran Vigil then puts a +1/+1 counter on it, which <strong>cancels out the -1/-1 counter</strong> (MTG rules: opposite counters remove each other). Now Putrid Goblin is clean again — no persist counter — so you can sacrifice and repeat <strong>infinitely</strong>. With <strong>Vengeful Dead or Blood Artist</strong> (which you already own!) on the field, this also becomes <strong>infinite drain</strong> — win with mill AND life loss simultaneously!
+  </div>
+</div>
+
+<!-- LEGEND -->
+<div class="legend">
+  <span style="font-size:11px;color:var(--text3);font-family:'Cinzel',serif;letter-spacing:.05em;">LEGEND:</span>
+  <span class="leg l-owned">✅ OWNED (prev photos)</span>
+  <span class="leg l-new-owned">🆕 OWNED (this photo)</span>
+  <span class="leg l-swap">🔄 OWNED — SWAP IN</span>
+  <span class="leg l-buy">🛒 NEED TO BUY</span>
+  <span class="leg l-proxy">🖨 PROXY (>$4)</span>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="sw('deck',this)">📜 FULL DECKLIST</div>
+  <div class="tab" onclick="sw('shop',this)">🛒 SHOPPING LIST</div>
+  <div class="tab" onclick="sw('combos',this)">⚡ ALL 7 COMBOS</div>
+  <div class="tab" onclick="sw('swaps',this)">🔄 YOUR SWAPS</div>
+</div>
+
+<!-- DECKLIST -->
+<div id="p-deck" class="panel active">
+  <div class="info">
+    <strong>Green = owned from photos 1–4 · Teal = newly found in photo 5.</strong>
+    Altar of Dementia ($31.50) and Phyrexian Tower ($15.00) are now confirmed owned — that's a huge saving!
+    Click any card name or TCG button → cheapest price on TCGPlayer.
+    <strong>PROXY</strong> → <a href="https://www.printingproxies.com/card-printing/" target="_blank">printingproxies.com</a>
+  </div>
+  <div id="deck-render"></div>
+</div>
+
+<!-- SHOPPING LIST -->
+<div id="p-shop" class="panel">
+  <div class="summary" id="shop-summary"></div>
+  <div class="shop-grid" id="shop-render"></div>
+</div>
+
+<!-- COMBOS -->
+<div id="p-combos" class="panel">
+  <div class="info"><strong>Combos marked 🆕 YOU OWN ALL PIECES</strong> — you can assemble these right now with cards from your photos!</div>
+  <div id="combo-render"></div>
+</div>
+
+<!-- SWAPS -->
+<div id="p-swaps" class="panel">
+  <div class="info">Cards you own from your photos that aren't in the main list but are <strong>strong enough to swap in</strong>. Includes new finds from photo 5.</div>
+  <div id="swaps-render"></div>
+</div>
+
+<script>
+const TCG = n => 'https://www.tcgplayer.com/search/magic/product?q=' + encodeURIComponent(n);
+const PROXY_URL = 'https://www.printingproxies.com/card-printing/';
+const THRESHOLD = 4;
+// status: 'owned' = prev photos, 'owned-new' = photo 5, null = need
+
+const deck = [
+  { cat:'COMMANDER', icon:'👑', cards:[
+    {n:'The Scarab God', p:6.85, note:'Returns to hand on death — near impossible to permanently remove'},
+  ]},
+  { cat:'ZOMBIE TRIBE', icon:'🧟', cards:[
+    {n:'Gravecrawler',              p:2.16,  s:'owned',     tags:['combo'], note:'Core combo piece — recasts itself from graveyard'},
+    {n:'Putrid Goblin',             p:0.50,  s:'owned-new', tags:['combo'], note:'★ NEW COMBO — persist + Thran Vigil = infinite loop'},
+    {n:'Diregraf Colossus',         p:4.81,                 tags:['combo'], note:'Makes 2/2 token on every zombie cast'},
+    {n:'Diregraf Captain',          p:0.35,  s:'owned',     tags:['combo'], note:'Drains all opponents 1 on each zombie death'},
+    {n:'Cryptbreaker',              p:7.49,                                 note:'Tap 3 zombies → draw 1 card'},
+    {n:'Undead Augur',              p:0.49,  s:'owned',                     note:'Draw 1 when any zombie dies'},
+    {n:'Death Baron',               p:4.49,  s:'owned',                     note:'All zombies get +1/+1 + deathtouch'},
+    {n:'Lord of the Undead',        p:13.99, s:'owned',                     note:'Zombie lord + return zombie from grave to hand'},
+    {n:'Cemetery Reaper',           p:1.29,  s:'owned',                     note:'Zombie lord + exile creatures → make 2/2 tokens'},
+    {n:'Midnight Reaper',           p:0.49,                                 note:'Draw 1 when any non-token zombie dies'},
+    {n:'Gisa and Geralf',           p:0.99,                                 note:'Cast one zombie from graveyard per turn'},
+    {n:'Wayward Servant',           p:0.35,  s:'owned-new',                 note:'★ NEW — drain 1 + gain 1 life when any zombie ETBs'},
+    {n:'Plague Belcher',            p:5.49,  s:'owned',                     note:'Menace beast that drains opponents on zombie death'},
+    {n:'Vengeful Dead',             p:1.00,  s:'owned',     tags:['combo'], note:'Drains ALL players when any zombie dies — infinite drain payoff'},
+    {n:'Wilhelt, the Rotcleaver',   p:1.49,                                 note:'Makes decayed tokens + draw engine with Skullclamp'},
+    {n:"Geralf's Messenger",        p:5.00,  s:'owned',                     note:'ETB drains 2, has undying'},
+    {n:'Gray Merchant of Asphodel', p:1.29,                                 note:'"Gary" — black devotion drains all opponents on ETB'},
+    {n:'Fleshbag Marauder',         p:0.35,  s:'owned',                     note:'Each player sacrifices on ETB — sac your own zombie'},
+    {n:'Carrion Feeder',            p:1.99,                 tags:['combo'], note:'Free sac outlet, grows with each sacrifice'},
+    {n:'Grave Titan',               p:2.75,  s:'owned',     tags:['new','combo'], note:'Makes 2 zombie tokens on ETB + attack — infinite mana engine'},
+    {n:'Graveborn Muse',            p:1.79,  s:'owned',                     note:'Draw 1 per zombie you control each upkeep (pay life)'},
+  ]},
+  { cat:'COMBO PIECES', icon:'⚙️', cards:[
+    {n:'Phyrexian Altar',           p:62.13,               tags:['combo'], note:'Sac zombie → any 1 colored mana'},
+    {n:"Ashnod's Altar",            p:47.49,               tags:['combo'], note:'Sac zombie → 2 colorless mana'},
+    {n:'Altar of Dementia',         p:31.50, s:'owned-new',tags:['combo'], note:'★ OWNED! Sac creature → target mills that many cards'},
+    {n:'Thran Vigil',               p:2.50,  s:'owned-new',tags:['combo'], note:'★ OWNED! Creature/artifact to grave → put +1/+1 on target'},
+    {n:'Nim Deathmantle',           p:4.00,                tags:['new','combo'], note:'Pay {4} on creature death → return with +2/+2 haste'},
+    {n:'Rooftop Storm',             p:8.00,                tags:['combo'], note:'All zombies cost {0} to cast'},
+    {n:'Intruder Alarm',            p:10.00,               note:'Each creature ETB untaps all your creatures'},
+    {n:'Endless Ranks of the Dead', p:3.99,  s:'owned',    note:'Each upkeep: create X/2 zombie tokens'},
+  ]},
+  { cat:'DRAW & TUTORS', icon:'🎴', cards:[
+    {n:'Rhystic Study',             p:61.67,               note:'Opponents pay {1} or you draw — best draw enchantment'},
+    {n:'Kindred Discovery',         p:8.49,                note:'Draw 1 every time any zombie enters the battlefield'},
+    {n:'Skullclamp',                p:6.90,  s:'owned',    note:'Equip to 1/1 token → it dies → draw 2 cards'},
+    {n:'Training Grounds',          p:5.00,                tags:['new'], note:'Cuts Scarab God activation cost from {4} to {2}'},
+    {n:'Necropotence',              p:15.00,               note:'Pay 1 life → exile top card → put in hand at EOT'},
+    {n:'Demonic Tutor',             p:8.00,  s:'owned',    note:'Search for any card — best black tutor'},
+    {n:'Vampiric Tutor',            p:58.00,               note:'Instant speed {B}, put any card on top of library'},
+    {n:'Diabolic Intent',           p:12.00, s:'owned',    note:'Sacrifice a zombie → Demonic Tutor effect'},
+    {n:'Sidisi, Undead Vizier',     p:5.94,                note:'Exploit zombie → tutor ANY card. Zombie body.'},
+    {n:'Entomb',                    p:28.14,               note:'Instant: put any card directly into graveyard'},
+  ]},
+  { cat:'REMOVAL & PROTECTION', icon:'🛡️', cards:[
+    {n:'Cyclonic Rift',             p:33.64,               note:'Overload bounces ALL opponents\' permanents'},
+    {n:'Force of Will',             p:84.00,               note:'Free hard counter — exile blue card + 1 life'},
+    {n:'Fierce Guardianship',       p:59.98,               note:'Free counter on noncreature spells if you have commander'},
+    {n:'Force of Negation',         p:49.95,               note:'Free counter on opponents\' turns'},
+    {n:'Fatal Push',                p:1.50,  s:'owned-new',note:'★ OWNED! Destroy creature ≤2 CMC, or ≤4 with revolt'},
+    {n:'Kindred Dominance',         p:15.00,               note:'Destroy ALL non-zombie creatures — one-sided wrath'},
+    {n:'Toxic Deluge',              p:8.49,                note:'Pay X life → all creatures get -X/-X'},
+    {n:'Damnation',                 p:22.99,               note:'Destroy all creatures'},
+    {n:'Swan Song',                 p:4.00,                note:'{U} — counter enchant/instant/sorcery'},
+    {n:'Counterspell',              p:1.99,                note:'Hard counter for {U}{U}'},
+  ]},
+  { cat:'RECURSION & GRAVEYARD', icon:'🔁', cards:[
+    {n:'Reanimate',                 p:7.00,                note:'Return any creature from any graveyard for {B}'},
+    {n:"Yawgmoth's Will",          p:95.00,               tags:['new'], note:'Cast all cards from your graveyard this turn'},
+    {n:"Patriarch's Bidding",       p:3.49,                note:'Each player returns creatures of a chosen type'},
+    {n:"Liliana, Death's Majesty",  p:1.49,                note:'Mill 2 + reanimate. Ult wipes non-zombies.'},
+    {n:'Buried Alive',              p:8.00,                note:'Put 3 creatures from library into graveyard'},
+  ]},
+  { cat:'WIN-CON ENABLERS', icon:'💀', cards:[
+    {n:'Mikaeus, the Unhallowed',   p:35.32,               tags:['combo'], note:'Gives all non-humans undying — core of 2-card kill'},
+    {n:'Walking Ballista',          p:10.00,               tags:['combo'], note:'2-card infinite kill with Mikaeus'},
+    {n:'Exsanguinate',              p:2.50,                tags:['new'], note:'X drain from all opponents — mana sink win-con'},
+    {n:'Blood Artist',              p:3.00,  s:'owned',    tags:['combo'], note:'Drain 1 on ANY creature death — infinite drain payoff'},
+    {n:'Necroduality',              p:5.26,                tags:['new'], note:'Each non-token zombie ETB creates a copy of it'},
+    {n:'Relentless Dead',           p:14.10,               note:'Pay {B} on death → return self + another zombie'},
+    {n:'Lightning Greaves',         p:6.99,                tags:['new'], note:'Haste + shroud on commander the instant it lands'},
+  ]},
+  { cat:'MANA ROCKS', icon:'💎', cards:[
+    {n:'Sol Ring',                  p:1.99,                note:'Best rock in Commander'},
+    {n:'Arcane Signet',             p:0.99,                note:'On-color 2-drop rock'},
+    {n:'Dimir Signet',              p:0.79,                note:'Filter {1} into {U}{B}'},
+    {n:'Talisman of Dominance',     p:0.99,                note:'Dimir talisman'},
+    {n:'Chrome Mox',                p:40.00,               note:'0-mana — imprint a nonbasic card'},
+    {n:'Mox Diamond',               p:100.00,              note:'0-mana — discard a land'},
+  ]},
+  { cat:'LANDS', icon:'🌍', cards:[
+    {n:'Command Tower',             p:0.49,                note:'Any color ETB untapped'},
+    {n:'Castle Locthwain',          p:3.50,  s:'owned-new',note:'★ OWNED! Pay life to draw when hand empty — great engine'},
+    {n:'Cabal Coffers',             p:31.94,               tags:['combo'], note:'Adds {B} per swamp you control — turbocharge with Urborg'},
+    {n:'Urborg, Tomb of Yawgmoth',  p:69.45,               note:'All lands are swamps'},
+    {n:'Phyrexian Tower',           p:15.00, s:'owned-new',note:'★ OWNED! Sac creature → add {B}{B} — sac outlet + mana'},
+    {n:'Cavern of Souls',           p:55.00,               note:'Name Zombie — zombies become uncounterable'},
+    {n:'Nykthos, Shrine to Nyx',    p:25.00,               note:'Devotion generates huge mana'},
+    {n:'Underground Sea',           p:400.00,              note:'Island + Swamp — best dual land'},
+    {n:'Polluted Delta',            p:20.00,               note:'Fetch — island or swamp'},
+    {n:'Flooded Strand',            p:15.00,               note:'Fetch — island or swamp'},
+    {n:'Bloodstained Mire',         p:18.00,               note:'Fetch — swamp'},
+    {n:'Marsh Flats',               p:12.00,               note:'Fetch — swamp'},
+    {n:'Watery Grave',              p:10.00,               note:'Shock dual — island + swamp'},
+    {n:'Morphic Pool',              p:8.00,                note:'Battlebond land — ETB untapped in multiplayer'},
+    {n:'Clearwater Pathway',        p:4.00,                note:'Choose island or swamp'},
+    {n:'Drowned Catacomb',          p:1.79,                note:'ETB untapped with island/swamp in play'},
+    {n:'Sunken Hollow',             p:0.49,                note:'ETB untapped with 2+ basics'},
+    {n:'Fetid Pools',               p:2.00,                note:'Cycle dual'},
+    {n:'Shipwreck Marsh',           p:2.00,                note:'Slow dual'},
+    {n:'Reliquary Tower',           p:3.00,                note:'No maximum hand size'},
+    {n:'Temple of Deceit',          p:1.00,                note:'Scry 1 on ETB'},
+    {n:'Island',                    p:0,                   note:'×4', qty:4},
+    {n:'Swamp',                     p:0,                   note:'×9', qty:9},
+  ]},
+];
+
+const swapCards = [
+  {own:'Undead Warchief',       p:2.00, cut:'Gleaming Overseer',   src:'prev', why:'Zombie lord: all zombies get +2/+1 AND cost {1} less to cast. Far stronger than Gleaming Overseer.'},
+  {own:'Shepherd of Rot',       p:0.50, cut:'Gisa and Geralf',     src:'prev', why:'Tap: drain all players equal to your zombie count. With 10 zombies = 10 damage to everyone. Closes games fast.'},
+  {own:'Gempalm Polluter',      p:0.50, cut:'Noxious Ghoul',       src:'prev', why:'Cycle for instant-speed damage equal to zombie count. Deals 8–12 damage for just cycling — no mana needed.'},
+  {own:'Ayara, First of Locthwain', p:1.00, cut:'Josu Vess, Lich Knight', src:'prev', why:'Each black creature ETB drains 1 from each opponent. Sacrifice black creatures to draw. Perfect synergy.'},
+  {own:'Call to the Grave',     p:1.00, cut:'Midnight Reaper',     src:'prev', why:'Each opponent sacrifices a non-zombie every upkeep. With your zombie-only board, this is a one-sided lockdown.'},
+  {own:'Grave Pact',            p:2.00, cut:'Corpse Harvester',    src:'prev', why:'When YOUR creature dies, ALL opponents must sacrifice a creature. With death loops, wipes opponents\' boards.'},
+  {own:'Champion of the Perished', p:1.50, cut:'Open the Graves',  src:'prev', why:'Gets +1/+1 for every zombie ETB. With combo loops it becomes a 20/20+. Free finisher you already own.'},
+  {own:'Castle Locthwain',      p:3.50, cut:'Temple of Deceit',    src:'new',  why:'Pay life to draw when your hand has 1 or fewer cards. ETBs untapped. Strictly better than Temple of Deceit.'},
+  {own:'Wayward Servant',       p:0.35, cut:'Eternal Skylord',     src:'new',  why:'Drains 1 and gains you 1 life every time a zombie ETBs — you or opponents\'. Flying on tokens is too slow vs this.'},
+  {own:'Fatal Push',            p:1.50, cut:'Drown in the Loch',   src:'new',  why:'Best 1-mana removal in black. Destroys 90% of relevant early threats. More reliable than Drown in the Loch early game.'},
+];
+
+const combos = [
+  {num:1, yours:true, title:'Putrid Goblin Infinite Loop',
+   pieces:'Putrid Goblin + Altar of Dementia + Thran Vigil',
+   win:'Infinite mill + infinite drain (with Vengeful Dead or Blood Artist)',
+   ownedPieces:['Putrid Goblin','Altar of Dementia','Thran Vigil','Vengeful Dead','Blood Artist'],
+   needPieces:[],
+   steps:[
+    'Putrid Goblin is a 2/2 with persist — when it dies with no -1/-1 counter, it returns with one',
+    'Sacrifice Putrid Goblin to Altar of Dementia → target opponent mills 2 cards',
+    'Persist triggers → Putrid Goblin returns to battlefield with a -1/-1 counter (now 1/1)',
+    'Thran Vigil triggers → put a +1/+1 counter on Putrid Goblin',
+    'A +1/+1 counter and -1/-1 counter on same creature cancel out and are removed (MTG rules 122.6)',
+    'Putrid Goblin is now a clean 2/2 again with NO persist counter — repeat infinitely!',
+    'Bonus: Vengeful Dead or Blood Artist you already own = infinite drain WHILE milling!'
+   ],
+   note:'🔥 YOU OWN ALL PIECES FOR THIS COMBO RIGHT NOW! Play this immediately.'},
+  {num:2, yours:false, title:'Gravecrawler Drain Loop',
+   pieces:'Gravecrawler + Phyrexian Altar + Diregraf Captain',
+   win:'Infinite damage to all opponents simultaneously',
+   ownedPieces:['Gravecrawler','Diregraf Captain'],
+   needPieces:['Phyrexian Altar'],
+   steps:[
+    'Sacrifice Gravecrawler to Phyrexian Altar → get {B}',
+    'Diregraf Captain deals 1 damage to each opponent on zombie death',
+    'Cast Gravecrawler from your graveyard for {B} — break even on mana',
+    'Repeat → infinite damage to all opponents'
+   ],note:'You own 2 of 3 pieces!'},
+  {num:3, yours:false, title:'Infinite Mill via Rooftop Storm',
+   pieces:'Gravecrawler + Rooftop Storm + Altar of Dementia',
+   win:'Mill all opponents out of cards',
+   ownedPieces:['Gravecrawler','Altar of Dementia'],
+   needPieces:['Rooftop Storm'],
+   steps:[
+    'Rooftop Storm makes Gravecrawler cost {0} to cast',
+    'Sacrifice to Altar of Dementia → target player mills 1 card',
+    'Gravecrawler goes to graveyard — cast for free again → repeat',
+    'Mill all opponents\' libraries empty → they lose on draw step'
+   ],note:'You now own Altar of Dementia! Just need Rooftop Storm.'},
+  {num:4, yours:false, title:'Infinite Token Army',
+   pieces:'Gravecrawler + Phyrexian Altar + Diregraf Colossus',
+   win:'Infinite 2/2 zombie tokens → swing for lethal',
+   ownedPieces:['Gravecrawler'],
+   needPieces:['Phyrexian Altar','Diregraf Colossus'],
+   steps:[
+    'Sacrifice Gravecrawler to Phyrexian Altar → {B}',
+    'Cast Gravecrawler from graveyard → Diregraf Colossus creates a 2/2 token',
+    'Repeat → infinite 2/2 zombie tokens',
+    'Attack with infinite tokens for lethal'
+   ],note:''},
+  {num:5, yours:false, title:'Mikaeus 2-Card Kill',
+   pieces:'Mikaeus, the Unhallowed + Walking Ballista',
+   win:'Infinite direct damage to all opponents',
+   ownedPieces:[],
+   needPieces:['Mikaeus, the Unhallowed','Walking Ballista'],
+   steps:[
+    'Cast Walking Ballista for {0} — enters with no counters → immediately dies',
+    'Mikaeus gives it undying → returns with +1/+1 counter',
+    'Remove counter to deal 1 damage to any opponent',
+    'Ballista dies (no counter) → undying → returns → repeat forever'
+   ],note:'Cleanest 2-card combo — works through any board state.'},
+  {num:6, yours:false, title:'Grave Titan Infinite Mana',
+   pieces:"Grave Titan + Ashnod's Altar + Nim Deathmantle",
+   win:"Infinite colorless mana → Exsanguinate X=999",
+   ownedPieces:['Grave Titan'],
+   needPieces:["Ashnod's Altar",'Nim Deathmantle','Exsanguinate'],
+   steps:[
+    'Grave Titan ETBs → creates 2 zombie tokens (you own Grave Titan!)',
+    "Sacrifice both tokens to Ashnod's Altar → {4} colorless mana",
+    "Sacrifice Grave Titan to Altar → {2} more = {6} total",
+    'Pay {4} for Nim Deathmantle → Grave Titan returns with haste',
+    'Net +{2} per loop → infinite colorless mana',
+    'Cast Exsanguinate for X = huge number → drain all opponents to 0'
+   ],note:'You own the engine piece — Grave Titan!'},
+  {num:7, yours:false, title:'Rooftop Storm + Intruder Alarm',
+   pieces:'Rooftop Storm + Intruder Alarm + any zombie tap ability',
+   win:'Infinite tokens + Scarab God drain',
+   ownedPieces:[],
+   needPieces:['Rooftop Storm','Intruder Alarm'],
+   steps:[
+    'Rooftop Storm = cast zombies for {0}',
+    'Cast any zombie → Intruder Alarm untaps all creatures',
+    'Tap Cryptbreaker/Wilhelt to create zombie token → ETB untaps everything again',
+    'Generate infinite tokens → infinite ETBs → Kindred Discovery draws infinite cards → win'
+   ],note:''},
+];
+
+function renderDeck() {
+  const el = document.getElementById('deck-render');
+  let grandTotal=0, ownedTotal=0, ownedCt=0, ownedNewCt=0, ownedNewVal=0, proxyCost=0, proxyCt=0, needCt=0, needBuy=0;
+
+  deck.forEach(sec => {
+    let secTotal=0, secOwned=0;
+    sec.cards.forEach(c => {
+      const q=c.qty||1, p=c.p*q;
+      secTotal+=p;
+      if(c.s==='owned'){ ownedTotal+=p; ownedCt+=q; secOwned++; }
+      else if(c.s==='owned-new'){ ownedTotal+=p; ownedCt+=q; ownedNewCt++; ownedNewVal+=p; secOwned++; }
+      else{ needCt++; needBuy+=p; if(c.p>THRESHOLD){ proxyCt++; proxyCost+=p; } }
+    });
+    grandTotal+=secTotal;
+
+    const div=document.createElement('div'); div.className='sec';
+    const ownNote=secOwned>0?`<span class="sec-owned-ct">✅ ${secOwned} owned</span>`:'';
+    div.innerHTML=`<div class="sec-hd"><span class="sec-title">${sec.icon} ${sec.cat}</span><span class="sec-meta">${sec.cards.reduce((a,c)=>a+(c.qty||1),0)} cards <span class="sec-cost">$${secTotal.toFixed(2)}</span> ${ownNote}</span></div>`;
+
+    sec.cards.forEach(c => {
+      const isOwned=c.s==='owned', isOwnedNew=c.s==='owned-new';
+      const anyOwned=isOwned||isOwnedNew;
+      const isProxy=c.p>THRESHOLD && !anyOwned;
+      const pclr=c.p>=80?'#e05c5c':c.p>=30?'#f0a050':c.p>THRESHOLD?'#c9a84c':'#5c596e';
+      const pstr=c.p===0?`<span style="color:var(--text3);font-size:11px">free</span>`
+        :isOwned?`<span style="color:var(--green)">✅ owned</span>`
+        :isOwnedNew?`<span style="color:var(--teal)">🆕 owned</span>`
+        :`<span style="color:${pclr}">$${c.p.toFixed(2)}</span>`;
+
+      const tags=(c.tags||[]).map(t=>
+        t==='combo'?`<span class="bdg b-combo">COMBO</span>`:
+        t==='new'?`<span class="bdg b-new">NEW</span>`:''
+      ).join('');
+      const sBdg=isOwned?`<span class="bdg b-owned">OWNED</span>`
+        :isOwnedNew?`<span class="bdg b-ownednew">NEW ✅</span>`
+        :isProxy?`<span class="bdg b-proxy">PROXY</span>`
+        :`<span class="bdg b-buy">BUY</span>`;
+
+      const row=document.createElement('div');
+      row.className='crow'+(isOwned?' owned':isOwnedNew?' owned-new':'');
+      row.innerHTML=`<a class="cname" href="${TCG(c.n)}" target="_blank">${c.n}${(c.qty||1)>1?' ×'+(c.qty||1):''}</a>${tags}${sBdg}<span class="cnote">${c.note||''}</span><span class="cprice">${pstr}</span><div class="cbtns">${!anyOwned?`<a href="${TCG(c.n)}" target="_blank" class="btn-tcg">TCG</a>`:''}${isProxy?`<a href="${PROXY_URL}" target="_blank" class="btn-proxy">PROXY</a>`:''}</div>`;
+      div.appendChild(row);
+    });
+    el.appendChild(div);
+  });
+
+  document.getElementById('sv-owned-ct').textContent=ownedCt;
+  document.getElementById('sv-owned-val').textContent='$'+ownedTotal.toFixed(0);
+  document.getElementById('sv-new-owned').textContent=ownedNewCt+' ($'+ownedNewVal.toFixed(0)+')';
+  document.getElementById('sv-need-ct').textContent=needCt;
+  document.getElementById('sv-buy-cost').textContent='$'+needBuy.toFixed(0);
+  const smart=(needBuy-proxyCost)+(proxyCt*1.75);
+  document.getElementById('sv-proxy-cost').textContent='$'+smart.toFixed(0);
+}
+
+function renderShop() {
+  const sum=document.getElementById('shop-summary');
+  const el=document.getElementById('shop-render');
+  const buckets={
+    proxy:{label:'🖨 PROXY THESE (>$4)',color:'var(--gold)',cards:[]},
+    buy:{label:'🛒 BUY THESE ($4 or less)',color:'var(--blue)',cards:[]},
+  };
+  let proxyT=0,buyT=0;
+  deck.forEach(sec=>sec.cards.forEach(c=>{
+    if(c.s==='owned'||c.s==='owned-new') return;
+    if(c.p>THRESHOLD){buckets.proxy.cards.push(c);proxyT+=c.p*(c.qty||1);}
+    else if(c.p>0){buckets.buy.cards.push(c);buyT+=c.p*(c.qty||1);}
+  }));
+  const pCt=buckets.proxy.cards.length, pOrder=pCt*1.75, total=pOrder+buyT, saved=proxyT-pOrder;
+  sum.innerHTML=`<div class="sum-title">💰 YOUR SHOPPING SUMMARY</div>
+    <div class="sum-row"><span class="sum-label">Cards you own (photos 1–5)</span><span class="sum-val" style="color:var(--green)">FREE ✅</span></div>
+    <div class="sum-row"><span class="sum-label">Cheap cards to buy ($4 or less)</span><span class="sum-val" style="color:var(--blue)">$${buyT.toFixed(2)}</span></div>
+    <div class="sum-row"><span class="sum-label">Proxy order (${pCt} cards × $1.75 at printingproxies.com)</span><span class="sum-val" style="color:var(--gold)">~$${pOrder.toFixed(2)}</span></div>
+    <div class="sum-row" style="padding-top:10px;margin-top:4px;border-top:1px solid var(--border2)"><span class="sum-label" style="font-weight:600;color:var(--text)">TOTAL TO COMPLETE YOUR DECK</span><span class="sum-val" style="color:var(--green);font-size:18px">~$${total.toFixed(0)}</span></div>
+    <div class="sum-row"><span class="sum-label" style="font-style:italic;font-size:11px">vs $${(proxyT+buyT).toFixed(0)} buying everything real</span><span class="sum-val" style="color:var(--green)">Save $${saved.toFixed(0)}</span></div>`;
+  Object.values(buckets).forEach(b=>{
+    const d=document.createElement('div'); d.className='shop-card';
+    d.innerHTML=`<div class="shop-head" style="color:${b.color}">${b.label} (${b.cards.length} cards)</div>`;
+    b.cards.forEach(c=>{
+      const r=document.createElement('div'); r.className='shop-row';
+      r.innerHTML=`<a class="shop-name" href="${TCG(c.n)}" target="_blank">${c.n}${(c.qty||1)>1?' ×'+(c.qty||1):''}</a><div style="display:flex;gap:4px;align-items:center;flex-shrink:0"><span class="shop-price" style="color:${c.p>=50?'var(--red)':c.p>=20?'var(--orange)':'var(--text2)'}">$${c.p.toFixed(2)}</span><a href="${TCG(c.n)}" target="_blank" class="btn-tcg">TCG</a>${c.p>THRESHOLD?`<a href="${PROXY_URL}" target="_blank" class="btn-proxy">PROXY</a>`:''}</div>`;
+      d.appendChild(r);
+    });
+    el.appendChild(d);
+  });
+}
+
+function renderCombos() {
+  const el=document.getElementById('combo-render');
+  combos.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='combo-card'+(c.yours?' yours':'');
+    const steps=c.steps.map((s,i)=>`<div class="step"><span class="step-n">${i+1}.</span><span class="step-t">${s}</span></div>`).join('');
+    const owned=c.ownedPieces.map(o=>`<span style="background:rgba(62,207,142,.12);color:var(--green);border:1px solid rgba(62,207,142,.25);font-size:10px;padding:1px 7px;border-radius:3px;font-family:Cinzel,serif">✅ ${o}</span>`).join(' ');
+    const need=c.needPieces.map(n=>`<span style="background:rgba(90,171,255,.1);color:var(--blue);border:1px solid rgba(90,171,255,.2);font-size:10px;padding:1px 7px;border-radius:3px;font-family:Cinzel,serif">🛒 ${n}</span>`).join(' ');
+    div.innerHTML=`${c.yours?`<div style="font-family:Cinzel,serif;font-size:10px;color:var(--green);letter-spacing:.08em;margin-bottom:6px">🆕 YOU OWN ALL PIECES FOR THIS COMBO</div>`:''}<div class="combo-title ${c.yours?'yours':''}">Combo #${c.num} — ${c.title}</div><div class="combo-pieces">${c.pieces}</div><div class="combo-win">WIN: ${c.win}</div>${steps}${(owned||need)?`<div style="display:flex;flex-wrap:wrap;gap:5px;padding-top:8px;border-top:1px solid rgba(201,168,76,.15);margin-top:8px">${owned}${need}</div>`:''}${c.note?`<div style="margin-top:8px;font-size:11px;color:${c.yours?'var(--green)':'var(--text3)'};font-style:italic">💡 ${c.note}</div>`:''}`;
+    el.appendChild(div);
+  });
+}
+
+function renderSwaps() {
+  const el=document.getElementById('swaps-render');
+  swapCards.forEach(s=>{
+    const d=document.createElement('div'); d.className='swaps-card';
+    const srcBdg=s.src==='new'?`<span class="bdg b-ownednew">PHOTO 5</span>`:`<span class="bdg b-owned">PREV</span>`;
+    d.innerHTML=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px"><span style="font-family:Cinzel,serif;font-size:13px;color:var(--orange);font-weight:700">🔄 ${s.own}</span>${srcBdg}<span style="font-size:11px;color:var(--text3);font-style:italic">you already own this</span><span style="font-family:Cinzel,serif;font-size:10px;color:var(--text2)">$${s.p.toFixed(2)}</span><a href="${TCG(s.own)}" target="_blank" class="btn-tcg">TCG</a></div><div style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:6px">${s.why}</div><div style="font-size:11px;color:var(--text3)"><strong style="color:var(--text2)">Cut:</strong> ${s.cut}</div>`;
+    el.appendChild(d);
+  });
+}
+
+function sw(id,btn){
+  document.querySelectorAll('.panel').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+renderDeck(); renderShop(); renderCombos(); renderSwaps();
+</script>
+</body>
+</html>
