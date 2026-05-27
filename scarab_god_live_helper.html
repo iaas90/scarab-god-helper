@@ -1,0 +1,1630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scarab God — Live Helper</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#04050a;--bg2:#080a12;--bg3:#0d1018;--bg4:#131620;--bg5:#191c28;
+  --border:#1a1e2e;--border2:#222840;--border3:#2c3250;
+  --gold:#c9a84c;--gold2:#e8c870;--gold3:#f5e4a8;
+  --green:#27c47a;--green2:#3de896;
+  --red:#e04444;--red2:#ff5e5e;
+  --blue:#3a8ee8;--blue2:#58aaff;
+  --orange:#f09820;
+  --purple:#9070e8;--purple2:#b094ff;
+  --teal:#18ccc0;
+  --text:#eae8e0;--text2:#9896a0;--text3:#4a4860;--text4:#28263a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{background:var(--bg);color:var(--text);font-family:'Crimson Pro',Georgia,serif;font-size:13px;}
+body{min-height:100vh;display:flex;flex-direction:column;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border3);border-radius:2px;}
+
+/* MULLIGAN MODE: hide game-only elements */
+body.mulligan-mode #panel-life,
+body.mulligan-mode #panel-opps, 
+body.mulligan-mode #panel-prob,
+body.mulligan-mode #cmd-zone,
+body.mulligan-mode #bf-section,
+body.mulligan-mode #cs-section{display:none !important;}
+/* GAME MODE: hide mulligan-only elements */
+body.game-mode #mull-counter-row{display:none !important;}
+/* ── HEADER ── */
+#hdr{background:var(--bg2);border-bottom:1px solid var(--border2);padding:0 16px;display:flex;align-items:center;gap:10px;height:48px;position:sticky;top:0;z-index:200;flex-shrink:0;}
+.logo{font-family:'Cinzel',serif;font-size:14px;font-weight:900;color:var(--gold2);letter-spacing:.04em;white-space:nowrap;}
+.logo small{color:var(--text3);font-weight:400;font-size:10px;letter-spacing:.08em;margin-left:6px;}
+.mode-tabs{display:flex;gap:3px;}
+.mtab{font-family:'Cinzel',serif;font-size:9px;letter-spacing:.07em;padding:5px 12px;border-radius:4px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);transition:all .15s;}
+.mtab.active{background:rgba(201,168,76,.12);border-color:rgba(201,168,76,.3);color:var(--gold);}
+.turn-ctl{display:flex;align-items:center;gap:6px;font-family:'Cinzel',serif;font-size:11px;color:var(--text2);padding:0 10px;border-left:1px solid var(--border);border-right:1px solid var(--border);}
+.tbn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 2px;transition:color .12s;}
+.tbn:hover{color:var(--text);}
+/* timer */
+#timer-display{font-family:'Cinzel',serif;font-size:13px;min-width:46px;text-align:center;color:var(--text2);}
+#timer-display.warn{color:var(--orange);animation:blink .8s ease-in-out infinite;}
+#timer-display.crit{color:var(--red2);animation:blink .4s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+.timer-btn{font-family:'Cinzel',serif;font-size:8px;padding:3px 6px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--text3);transition:all .12s;}
+.timer-btn:hover{background:rgba(255,255,255,.08);color:var(--text);}
+.hdr-right{margin-left:auto;display:flex;gap:6px;align-items:center;}
+
+/* ── LAYOUT ── */
+/* ── CLEAN LAYOUT ── */
+#app{display:grid;flex:1;overflow:hidden;height:calc(100vh - 48px);}
+/* Mulligan: narrow picker left, wide AI right */
+body.mulligan-mode #app{grid-template-columns:300px 1fr;}
+/* Game: wide zones left, fixed AI right */
+body.game-mode #app{grid-template-columns:1fr 460px;}
+#left{overflow-y:auto;padding:10px 12px;min-height:0;align-items:start;}
+#right{background:var(--bg2);border-left:1px solid var(--border2);display:flex;flex-direction:column;overflow:hidden;height:100%;min-height:0;}
+
+/* ── PANELS ── */
+.panel{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;margin-bottom:8px;}
+.panel-head{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.panel-head:hover{background:rgba(255,255,255,.04);}
+.panel-title{font-family:'Cinzel',serif;font-size:9px;letter-spacing:.1em;color:var(--gold);font-weight:700;}
+.panel-meta{font-size:10px;color:var(--text3);}
+.panel-body{padding:10px 12px;display:block;}
+.panel-toggle{font-size:12px;color:var(--text3);transition:transform .2s;}
+.panel-toggle.open{transform:rotate(180deg);}
+/* COLLAPSED: hide body cleanly */
+.panel.collapsed .panel-body{display:none;}
+.panel.collapsed .panel-head{border-bottom:none;}
+.panel.collapsed{margin-bottom:8px;}
+
+/* ── LIFE TOTALS ── */
+.life-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+.life-row:last-child{margin-bottom:0;}
+.life-who{font-family:'Cinzel',serif;font-size:9px;letter-spacing:.05em;color:var(--text3);width:60px;flex-shrink:0;}
+.life-val{font-family:'Cinzel',serif;font-size:22px;font-weight:700;min-width:36px;line-height:1;}
+.lbg{display:flex;gap:2px;}
+.lb{font-size:9px;padding:2px 6px;cursor:pointer;border:1px solid var(--border);border-radius:3px;background:rgba(255,255,255,.03);color:var(--text3);font-family:Cinzel,serif;transition:all .1s;}
+.lb:hover{background:rgba(255,255,255,.09);color:var(--text);}
+
+/* ── ZONES ── */
+.zone-label{font-family:'Cinzel',serif;font-size:8px;letter-spacing:.1em;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;}
+.zone-label span{color:var(--text2);}
+.dropzone{min-height:38px;max-height:120px;overflow-y:auto;padding:6px;border-radius:6px;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start;transition:all .15s;border:1px dashed;}
+.dropzone.hand-dz{border-color:rgba(201,168,76,.2);background:rgba(201,168,76,.03);min-height:42px;max-height:100px;}
+.dropzone.bf-dz{border-color:rgba(58,142,232,.2);background:rgba(58,142,232,.03);min-height:42px;max-height:130px;}
+.dropzone.gy-dz{border-color:rgba(155,127,232,.15);background:rgba(155,127,232,.02);}
+.dropzone.drag-over{background:rgba(255,255,255,.07);border-style:solid;}
+.zone-empty{font-size:11px;color:var(--text3);font-style:italic;align-self:center;padding:2px 4px;}
+
+/* ── CARDS IN ZONES ── */
+.zcard{font-size:11px;padding:3px 8px;border-radius:4px;cursor:grab;border:1px solid;user-select:none;transition:all .12s;display:flex;align-items:center;gap:4px;position:relative;}
+.zcard:hover{opacity:.85;}
+.zcard:active{cursor:grabbing;opacity:.7;}
+.zcard.h-land{background:rgba(39,196,122,.09);border-color:rgba(39,196,122,.25);color:var(--green);}
+.zcard.h-rock{background:rgba(58,142,232,.09);border-color:rgba(58,142,232,.25);color:var(--blue2);}
+.zcard.h-combo{background:rgba(201,168,76,.09);border-color:rgba(201,168,76,.25);color:var(--gold);}
+.zcard.h-spell{background:rgba(255,255,255,.04);border-color:var(--border2);color:var(--text2);}
+.zcard .zx{font-size:9px;color:var(--text3);margin-left:2px;opacity:.7;}
+.zcard .zx:hover{opacity:1;color:var(--red2);}
+/* tapped lands */
+.zcard.tapped{transform:rotate(90deg);margin:10px 18px;opacity:.75;}
+.zcard.tapped:hover{opacity:.95;}
+.tapped-badge{position:absolute;top:-6px;left:50%;transform:translateX(-50%);font-size:8px;font-family:Cinzel,serif;color:var(--orange);background:var(--bg3);padding:1px 3px;border-radius:2px;white-space:nowrap;}
+/* mana pool */
+.mana-pool{display:flex;flex-wrap:wrap;gap:3px;min-height:22px;margin-top:6px;align-items:center;}
+.mana-pip{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;cursor:pointer;border:1px solid;transition:transform .1s;flex-shrink:0;}
+.mana-pip:hover{transform:scale(1.1);}
+.mp-B{background:#2d1a3d;color:#c084fc;border-color:#4c2a6a;}
+.mp-U{background:#1a2640;color:#60a5fa;border-color:#2a3a6a;}
+.mp-C{background:#1e1e1e;color:#d1d5db;border-color:#3a3a3a;}
+.mp-G{background:#1a2e1a;color:#4ade80;border-color:#2a5a2a;}
+.mana-lbl{font-size:9px;color:var(--text3);font-family:Cinzel,serif;letter-spacing:.05em;}
+
+/* ── OPPONENT TRACKER ── */
+.opp-row{display:grid;grid-template-columns:60px 1fr;gap:6px;align-items:start;margin-bottom:8px;}
+.opp-row:last-child{margin-bottom:0;}
+.opp-name{font-family:'Cinzel',serif;font-size:9px;color:var(--text3);padding-top:5px;}
+.opp-input{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:4px 8px;color:var(--text2);font-size:11px;outline:none;width:100%;font-family:'Crimson Pro',serif;}
+.opp-input:focus{border-color:var(--border2);}
+.opp-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;}
+.opp-tag{font-size:10px;padding:2px 7px;border-radius:3px;background:rgba(224,68,68,.1);border:1px solid rgba(224,68,68,.2);color:var(--red2);cursor:pointer;}
+.opp-tag:hover{background:rgba(224,68,68,.2);}
+.quick-threat{font-size:9px;padding:2px 6px;border-radius:3px;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text3);cursor:pointer;transition:all .12s;font-family:Cinzel,serif;}
+.quick-threat:hover{background:rgba(255,255,255,.07);color:var(--text2);}
+
+/* ── COMBO STATUS ── */
+.cs-row{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:5px;border:1px solid var(--border);background:rgba(255,255,255,.02);margin-bottom:4px;cursor:default;}
+.cs-row.ready{background:rgba(39,196,122,.07);border-color:rgba(39,196,122,.25);}
+.cs-row.close{background:rgba(240,152,32,.05);border-color:rgba(240,152,32,.2);}
+.cs-name{flex:1;font-size:11px;}
+.cs-pips{display:flex;gap:2px;}
+.cs-pip{width:7px;height:7px;border-radius:50%;background:var(--border3);}
+.cs-pip.have{background:var(--green);}
+.cs-badge{font-family:'Cinzel',serif;font-size:8px;letter-spacing:.04em;white-space:nowrap;}
+
+/* ── PROBABILITY CALC ── */
+.prob-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+.prob-label{font-size:11px;color:var(--text2);min-width:120px;}
+.prob-input{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:4px 8px;color:var(--text);font-size:12px;outline:none;width:60px;text-align:center;font-family:'Cinzel',serif;}
+.prob-result{background:rgba(58,142,232,.08);border:1px solid rgba(58,142,232,.2);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--blue2);line-height:1.6;margin-top:4px;min-height:0;}
+.prob-result:empty{display:none;}
+.prob-bar{height:6px;background:var(--border);border-radius:3px;margin-top:4px;overflow:hidden;}
+.prob-bar-fill{height:100%;border-radius:3px;background:var(--blue2);transition:width .4s;}
+
+/* ── CARD PICKER ── */
+.picker-search{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:5px;padding:6px 10px;color:var(--text);font-size:12px;outline:none;font-family:'Crimson Pro',serif;margin-bottom:6px;}
+.picker-search:focus{border-color:var(--border2);}
+.pfilters{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;}
+.pf{font-family:'Cinzel',serif;font-size:8px;letter-spacing:.04em;padding:3px 8px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--text3);transition:all .12s;}
+.pf.active{background:rgba(201,168,76,.1);color:var(--gold);border-color:rgba(201,168,76,.25);}
+.add-zone-row{display:flex;gap:4px;margin-bottom:6px;flex-wrap:wrap;}
+.azb{font-family:'Cinzel',serif;font-size:8px;letter-spacing:.05em;padding:4px 9px;border-radius:4px;cursor:pointer;border:1px solid;transition:all .15s;}
+.azb.hand{background:rgba(201,168,76,.07);color:var(--gold);border-color:rgba(201,168,76,.2);}
+.azb.hand.sel{background:rgba(201,168,76,.2);border-color:var(--gold);font-weight:700;}
+.azb.bf{background:rgba(58,142,232,.07);color:var(--blue2);border-color:rgba(58,142,232,.2);}
+.azb.bf.sel{background:rgba(58,142,232,.2);border-color:var(--blue2);font-weight:700;}
+.azb.gy{background:rgba(155,127,232,.06);color:var(--purple2);border-color:rgba(155,127,232,.18);}
+.azb.gy.sel{background:rgba(155,127,232,.18);border-color:var(--purple2);font-weight:700;}
+.azb.clr{background:rgba(224,68,68,.07);color:var(--red2);border-color:rgba(224,68,68,.2);margin-left:auto;}
+.picker-grid{display:flex;flex-wrap:wrap;gap:3px;max-height:250px;overflow-y:auto;padding:2px;}
+.pc{font-size:11px;padding:3px 8px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--text2);transition:all .12s;user-select:none;}
+.pc:hover{background:rgba(255,255,255,.07);color:var(--text);}
+.pc.in-h{background:rgba(201,168,76,.1);color:var(--gold);border-color:rgba(201,168,76,.25);}
+.pc.in-b{background:rgba(58,142,232,.1);color:var(--blue2);border-color:rgba(58,142,232,.25);}
+.pc.in-g{background:rgba(155,127,232,.08);color:var(--purple2);border-color:rgba(155,127,232,.2);}
+.pc.is-land{border-color:rgba(39,196,122,.15);}
+.pc.is-combo{border-color:rgba(201,168,76,.15);}
+
+/* ── RIGHT PANEL ── */
+#r-head{padding:12px 14px;border-bottom:1px solid var(--border2);flex-shrink:0;}
+.r-title{font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:var(--gold2);}
+.r-sub{font-size:12px;color:var(--text3);margin-top:3px;}
+#r-head{padding:12px 18px;border-bottom:1px solid var(--border2);flex-shrink:0;}
+#history-area{flex:1;overflow-y:auto;padding:14px 18px;min-height:0;height:0;}
+.hist-item{margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border);}
+.hist-item:last-child{border-bottom:none;margin-bottom:0;}
+.hist-meta{font-family:'Cinzel',serif;font-size:10px;color:var(--text3);letter-spacing:.06em;margin-bottom:10px;}
+.adv-text{font-size:15px;color:var(--text2);line-height:1.85;}
+.adv-text strong{color:var(--text);font-size:15px;}
+.adv-section-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.09em;color:var(--text3);margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.adv-bullet{display:flex;gap:8px;margin-bottom:8px;font-size:15px;color:var(--text2);line-height:1.7;align-items:flex-start;}
+.adv-bullet::before{content:'›';color:var(--gold);flex-shrink:0;font-size:17px;line-height:1.5;}
+.v-keep{display:inline-block;background:rgba(39,196,122,.15);color:var(--green);padding:4px 14px;border-radius:5px;font-family:Cinzel,serif;font-size:13px;font-weight:700;}
+.v-mull{display:inline-block;background:rgba(224,68,68,.15);color:var(--red2);padding:4px 14px;border-radius:5px;font-family:Cinzel,serif;font-size:13px;font-weight:700;}
+.v-snap{display:inline-block;background:rgba(240,152,32,.15);color:var(--orange);padding:4px 14px;border-radius:5px;font-family:Cinzel,serif;font-size:13px;font-weight:700;}
+.thinking{display:flex;align-items:center;gap:10px;padding:20px 0;color:var(--text3);font-size:14px;font-style:italic;}
+.dots span{width:6px;height:6px;border-radius:50%;background:var(--gold);display:inline-block;animation:dp 1.2s infinite;margin-right:4px;}
+.dots span:nth-child(2){animation-delay:.2s;}
+.dots span:nth-child(3){animation-delay:.4s;}
+@keyframes dp{0%,80%,100%{transform:scale(.5);opacity:.3;}40%{transform:scale(1);opacity:1;}}
+.empty-state{color:var(--text3);font-size:14px;font-style:italic;padding:24px 0;line-height:1.9;}
+
+/* ── QUICK SITUATIONS ── */
+#situations{padding:8px 14px;border-top:1px solid var(--border2);flex-shrink:0;max-height:120px;overflow-y:auto;}
+.sit-title{font-family:'Cinzel',serif;font-size:9px;letter-spacing:.1em;color:var(--text3);margin-bottom:6px;}
+.sit-btns{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px;}
+.sit-btn{font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--text3);transition:all .12s;user-select:none;}
+.sit-btn:hover{background:rgba(255,255,255,.06);color:var(--text2);}
+.sit-btn.on{border-color:rgba(201,168,76,.35);background:rgba(201,168,76,.1);color:var(--gold);}
+
+/* ── ASK ZONE ── */
+#ask-zone{padding:8px 14px 10px;border-top:1px solid var(--border2);flex-shrink:0;}
+.ctx-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:7px 10px;color:var(--text2);font-size:13px;outline:none;font-family:'Crimson Pro',serif;resize:none;height:40px;margin-bottom:6px;}
+.ctx-input:focus{border-color:var(--border2);}
+.ask-btn{font-family:'Cinzel',serif;font-size:11px;letter-spacing:.08em;padding:9px;border-radius:6px;cursor:pointer;border:1px solid rgba(201,168,76,.35);background:rgba(201,168,76,.1);color:var(--gold2);transition:all .2s;width:100%;display:flex;align-items:center;justify-content:center;gap:8px;}
+.ask-btn:hover:not(:disabled){background:rgba(201,168,76,.18);border-color:var(--gold);}
+.ask-btn:disabled{opacity:.35;cursor:not-allowed;}
+.ask-btn.loading{background:rgba(201,168,76,.06);animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.4;}50%{opacity:1;}}
+
+/* ── TOOLTIP ── */
+#tt{position:fixed;background:var(--bg4);border:1px solid var(--border3);border-radius:7px;padding:8px 11px;z-index:9000;max-width:220px;font-size:11px;color:var(--text2);line-height:1.55;pointer-events:none;display:none;box-shadow:0 10px 30px rgba(0,0,0,.8);}
+#tt-name{font-family:'Cinzel',serif;font-size:11px;color:var(--gold2);margin-bottom:3px;}
+#tt-type{font-size:9px;color:var(--text3);margin-bottom:4px;}
+
+/* ── MOBILE ── */
+@media(max-width:860px){
+  body.mulligan-mode #app,body.game-mode #app,#app{grid-template-columns:1fr;grid-template-rows:1fr 380px;}
+  #right{border-left:none;border-top:1px solid var(--border2);height:380px;}
+  .logo small{display:none;}
+  .turn-ctl{padding:0 6px;}
+}
+
+/* ── API KEY BANNER ── */
+#api-banner{background:rgba(224,68,68,.12);border-bottom:2px solid rgba(224,68,68,.4);padding:10px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.api-banner-msg{font-size:12px;color:var(--red2);flex:1;}
+.api-banner-msg strong{color:#fff;}
+.api-key-input{background:var(--bg3);border:1px solid rgba(224,68,68,.4);border-radius:5px;padding:6px 12px;color:var(--text);font-size:12px;outline:none;width:340px;font-family:monospace;letter-spacing:.05em;}
+.api-key-input:focus{border-color:var(--gold);}
+.api-save-btn{font-family:'Cinzel',serif;font-size:9px;letter-spacing:.07em;padding:7px 14px;border-radius:5px;cursor:pointer;background:rgba(39,196,122,.12);color:var(--green);border:1px solid rgba(39,196,122,.3);transition:all .15s;white-space:nowrap;}
+.api-save-btn:hover{background:rgba(39,196,122,.22);}
+#api-ok-banner{background:rgba(39,196,122,.08);border-bottom:1px solid rgba(39,196,122,.25);padding:7px 20px;display:none;align-items:center;gap:8px;}
+.api-ok-msg{font-size:11px;color:var(--green);}
+
+[data-theme="light"]{
+  --bg:#f0ede8;--bg2:#e8e4de;--bg3:#dedad4;--bg4:#d0cbc4;
+  --border:#c8c2ba;--border2:#b8b0a8;--border3:#a8a098;
+  --text:#1a1814;--text2:#4a4540;--text3:#8a8480;--text4:#cac6c0;
+  --gold:#8a5c10;--gold2:#a07020;--gold3:#704810;
+  --green:#156a3a;--green2:#0f5030;
+  --red:#a02020;--red2:#c03030;
+  --blue:#1040a0;--blue2:#1850c8;
+  --purple:#4a2090;--purple2:#6030b0;
+  --orange:#904010;--teal:#0a6060;
+}
+
+/* ── ENHANCED ANIMATIONS ── */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes comboGlow{0%,100%{box-shadow:0 0 6px rgba(39,196,122,.3);}50%{box-shadow:0 0 22px rgba(39,196,122,.85),0 0 44px rgba(39,196,122,.25);}}
+@keyframes shimmer{0%{background-position:-400px 0;}100%{background-position:400px 0;}}
+@keyframes popIn{0%{transform:scale(.82);opacity:0;}70%{transform:scale(1.04);}100%{transform:scale(1);opacity:1;}}
+@keyframes lifePing{0%{transform:scale(1);}40%{transform:scale(1.18);}100%{transform:scale(1);}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+@keyframes borderPulse{0%,100%{border-color:rgba(39,196,122,.3);}50%{border-color:rgba(39,196,122,.9);}}
+
+.fade-in{animation:fadeIn .3s ease forwards;}
+.fade-in-up{animation:fadeInUp .28s ease forwards;}
+.pop-in{animation:popIn .22s cubic-bezier(.34,1.56,.64,1) forwards;}
+.slide-down{animation:slideDown .2s ease forwards;}
+
+/* Skeleton */
+.skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:400px 100%;animation:shimmer 1.4s infinite;border-radius:4px;height:13px;margin:3px 0;}
+
+/* Card hover */
+.pc,.zcard,.hand-card,.picker-card{transition:transform .12s ease,box-shadow .12s ease,background .12s ease,border-color .12s ease,opacity .12s ease !important;}
+.pc:not(.in-h):not(.in-b):not(.in-g):hover,.picker-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.5);}
+
+/* Combo ready */
+.cs-row.ready{animation:comboGlow 2s ease-in-out infinite;border-width:1px !important;}
+
+/* Tab underline */
+.mtab{position:relative;overflow:hidden;}
+.mtab::after{content:'';position:absolute;bottom:0;left:50%;width:0;height:2px;background:var(--gold);transition:width .2s ease;transform:translateX(-50%);}
+.mtab.active::after{width:80%;}
+
+/* Life total animation */
+.life-ping{animation:lifePing .35s ease;}
+
+/* Better tapped cards */
+/* TAPPED LANDS — rotate + orange tint */
+.zcard.tapped-land{
+  transform:rotate(90deg) scale(.88);
+  margin:14px 20px;
+  filter:brightness(.6) saturate(.5);
+  border-style:dashed !important;
+  border-color:var(--orange) !important;
+  opacity:.8;
+}
+.zcard.tapped-land::after{
+  content:'TAPPED';
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+  font-family:'Cinzel',serif;font-size:7px;color:var(--orange);letter-spacing:.06em;
+  background:var(--bg3);padding:1px 5px;border-radius:2px;white-space:nowrap;
+  border:1px solid rgba(240,152,32,.3);
+}
+
+/* ATTACKING/TAPPED CREATURES — rotate + red tint */
+.zcard.tapped-creature{
+  transform:rotate(90deg) scale(.88);
+  margin:14px 20px;
+  filter:brightness(.65) sepia(.4) hue-rotate(-20deg);
+  border-style:dashed !important;
+  border-color:var(--red2) !important;
+  opacity:.85;
+}
+.zcard.tapped-creature::after{
+  content:'ATTACKING';
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+  font-family:'Cinzel',serif;font-size:7px;color:var(--red2);letter-spacing:.06em;
+  background:var(--bg3);padding:1px 5px;border-radius:2px;white-space:nowrap;
+  border:1px solid rgba(224,68,68,.3);
+}
+
+/* TAPPED ARTIFACTS/OTHER — rotate + dim */
+.zcard.tapped-other{
+  transform:rotate(90deg) scale(.88);
+  margin:14px 20px;
+  filter:brightness(.55) saturate(.4);
+  border-style:dashed !important;
+  border-color:var(--text3) !important;
+  opacity:.75;
+}
+.zcard.tapped-other::after{
+  content:'TAPPED';
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+  font-family:'Cinzel',serif;font-size:7px;color:var(--text3);letter-spacing:.06em;
+  background:var(--bg3);padding:1px 5px;border-radius:2px;white-space:nowrap;
+}
+
+/* EXILE ZONE */
+.exile-dz{border-color:rgba(240,152,32,.2);background:rgba(240,152,32,.02);}
+.zcard.h-exiled{
+  background:rgba(240,152,32,.08);
+  border-color:rgba(240,152,32,.25);
+  color:var(--orange);
+  opacity:.7;
+  text-decoration:line-through;
+  cursor:default;
+}
+.exile-empty{font-size:11px;color:var(--text3);font-style:italic;align-self:center;padding:2px 4px;}
+
+/* Zone drop highlight */
+.dropzone.drag-over{
+  background:rgba(201,168,76,.1) !important;
+  border-color:var(--gold) !important;
+  border-style:solid !important;
+  box-shadow:inset 0 0 20px rgba(201,168,76,.08);
+}
+
+
+
+/* Hand cards */
+.zcard{
+  box-shadow:0 2px 6px rgba(0,0,0,.4);
+}
+.zcard.h-combo{
+  box-shadow:0 2px 8px rgba(201,168,76,.2);
+}
+.zcard.h-land{
+  box-shadow:0 2px 8px rgba(39,196,122,.15);
+}
+
+/* Quick situation buttons selected */
+.sit-btn.on{
+  background:rgba(201,168,76,.15) !important;
+  color:var(--gold2) !important;
+  border-color:rgba(201,168,76,.4) !important;
+  box-shadow:0 0 8px rgba(201,168,76,.2);
+}
+
+/* Mobile improvements */
+@media(max-width:860px){
+  #hdr{flex-wrap:wrap;height:auto;padding:8px 12px;gap:6px;}
+  .logo{font-size:13px;}
+  .mode-tabs{order:2;width:100%;}
+  .mtab{flex:1;text-align:center;}
+  .turn-ctl{font-size:10px;}
+  .panel-body{padding:8px 10px;}
+  .zcard{font-size:10px;padding:2px 6px;}
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border3);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--border2);}
+
+
+
+</style>
+</head>
+<body>
+<!-- API KEY BANNER -->
+<div id="api-banner">
+  <div class="api-banner-msg">
+    <strong>⚠ API Key Required</strong> — This file must be opened via a local server, not file://. 
+    Get your free key at <strong>console.anthropic.com</strong> → API Keys.
+  </div>
+  <input class="api-key-input" id="api-key-field" type="password" placeholder="sk-ant-api03-..." oninput="checkApiKey()">
+  <button class="api-save-btn" onclick="saveApiKey()">SAVE KEY ✓</button>
+</div>
+<div id="api-ok-banner">
+  <span class="api-ok-msg">✅ API Key saved — AI features are active. Key is stored in memory only and never leaves your browser.</span>
+  <span style="margin-left:auto;font-size:11px;color:var(--text3);cursor:pointer;" onclick="clearApiKey()">Change key</span>
+</div>
+
+<div id="hdr">
+  <div class="logo">⚰ Scarab God <small>LIVE HELPER</small></div>
+  <div class="mode-tabs">
+    <button class="mtab active" onclick="setMode('mulligan',this)">🎴 MULLIGAN</button>
+    <button class="mtab" onclick="setMode('game',this)">⚔️ LIVE GAME</button>
+  </div>
+  <div class="turn-ctl">
+    <button class="tbn" onclick="adjTurn(-1)">◀</button>
+    TURN <span id="turn-num">1</span>
+    <button class="tbn" onclick="adjTurn(1)">▶</button>
+  </div>
+  <div class="turn-ctl">
+    <span id="timer-display">3:00</span>
+    <button class="timer-btn" id="tbtn-start" onclick="timerToggle()">▶</button>
+    <button class="timer-btn" onclick="timerReset()">↺</button>
+    <select id="timer-preset" onchange="timerPreset()" style="font-family:Cinzel,serif;font-size:8px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);border-radius:3px;padding:2px 4px;cursor:pointer;outline:none;">
+      <option value="180">3 min</option>
+      <option value="120">2 min</option>
+      <option value="60">1 min</option>
+      <option value="300">5 min</option>
+    </select>
+  </div>
+  <div class="hdr-right">
+    <span id="mana-pool-hdr" style="display:flex;gap:3px;align-items:center;"></span>
+    <button id="sound-btn" onclick="toggleSound()" title="Toggle sounds" style="font-family:Cinzel,serif;font-size:13px;padding:3px 8px;border-radius:4px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text2);">🔊</button>
+    <button id="theme-btn" onclick="toggleTheme()" title="Toggle light/dark" style="font-family:Cinzel,serif;font-size:13px;padding:3px 8px;border-radius:4px;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text2);">☀️</button>
+    <button onclick="clearAll()" style="font-family:Cinzel,serif;font-size:8px;padding:4px 10px;border-radius:4px;cursor:pointer;background:rgba(224,68,68,.08);color:var(--red2);border:1px solid rgba(224,68,68,.2);transition:all .15s;" onmouseover="this.style.background='rgba(224,68,68,.18)'" onmouseout="this.style.background='rgba(224,68,68,.08)'">CLEAR ALL</button>
+  </div>
+</div>
+
+<div id="app">
+<div id="left">
+
+  <!-- LIFE TOTALS -->
+  <div class="panel" id="panel-life">
+    <div class="panel-head" onclick="togglePanel('panel-life')">
+      <span class="panel-title">LIFE TOTALS</span>
+      <span class="panel-meta" id="life-summary"></span>
+      <span class="panel-toggle open">▼</span>
+    </div>
+    <div class="panel-body" id="life-rows"></div>
+  </div>
+
+  <!-- OPPONENT TRACKER -->
+  <div class="panel collapsed" id="panel-opps">
+    <div class="panel-head" onclick="togglePanel('panel-opps')">
+      <span class="panel-title">OPPONENT THREAT TRACKER</span>
+      <span class="panel-meta" id="opp-summary">No threats tracked</span>
+      <span class="panel-toggle">▼</span>
+    </div>
+    <div class="panel-body">
+      <div id="opp-tracker"></div>
+      <div style="margin-top:8px;">
+        <div style="font-family:Cinzel,serif;font-size:8px;letter-spacing:.08em;color:var(--text3);margin-bottom:5px;">QUICK ADD THREATS:</div>
+        <div id="quick-threats" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMMANDER ZONE - hidden in mulligan mode -->
+  <div id="cmd-zone" style="margin-bottom:8px;">
+    <div class="zone-label">COMMAND ZONE</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:rgba(201,168,76,.07);border:1px solid rgba(201,168,76,.25);border-radius:8px;">
+      <span style="font-size:18px;">👑</span>
+      <div style="flex:1;">
+        <div style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--gold2);" data-sf="The Scarab God">The Scarab God</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:1px;">Commander — always available from command zone</div>
+      </div>
+      <button onclick="castCommander()" id="cmd-cast-btn" style="font-family:'Cinzel',serif;font-size:9px;letter-spacing:.06em;padding:5px 12px;border-radius:5px;cursor:pointer;background:rgba(201,168,76,.12);color:var(--gold);border:1px solid rgba(201,168,76,.3);transition:all .15s;white-space:nowrap;">CAST ▶</button>
+      <button onclick="returnCommander()" id="cmd-return-btn" style="display:none;font-family:'Cinzel',serif;font-size:9px;letter-spacing:.06em;padding:5px 12px;border-radius:5px;cursor:pointer;background:rgba(224,68,68,.08);color:var(--red2);border:1px solid rgba(224,68,68,.2);transition:all .15s;white-space:nowrap;">← RETURN</button>
+    </div>
+  </div>
+
+  <!-- YOUR HAND -->
+  <div style="margin-bottom:8px;height:auto;">
+    <div class="zone-label">
+      YOUR HAND <span id="hand-count">0 cards</span>
+      <div style="display:flex;align-items:center;gap:6px;" id="mull-counter-row">
+        <span style="font-family:'Cinzel',serif;font-size:8px;color:var(--text3);">MULLIGAN:</span>
+        <button onclick="adjMull(-1)" style="font-family:Cinzel,serif;font-size:9px;padding:1px 6px;border-radius:3px;cursor:pointer;background:rgba(255,255,255,.04);color:var(--text3);border:1px solid var(--border);transition:all .12s;" onmouseover="this.style.background='rgba(255,255,255,.09)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">−</button>
+        <span id="mull-count-lbl" style="font-family:'Cinzel',serif;font-size:11px;color:var(--gold);min-width:80px;text-align:center;">Opening 7</span>
+        <button onclick="adjMull(1)" style="font-family:Cinzel,serif;font-size:9px;padding:1px 6px;border-radius:3px;cursor:pointer;background:rgba(255,255,255,.04);color:var(--text3);border:1px solid var(--border);transition:all .12s;" onmouseover="this.style.background='rgba(255,255,255,.09)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">+</button>
+      </div>
+    </div>
+    <div class="dropzone hand-dz" id="dz-hand" ondragover="onDragOver(event,'hand')" ondragleave="onDragLeave('hand')" ondrop="onDrop(event,'hand')"></div>
+  </div>
+
+  <!-- BATTLEFIELD + MANA (game mode only) -->
+  <div id="bf-section" style="display:none;margin-bottom:8px;">
+    <div class="zone-label">BATTLEFIELD <span id="bf-count">0</span></div>
+    <div class="dropzone bf-dz" id="dz-bf" ondragover="onDragOver(event,'bf')" ondragleave="onDragLeave('bf')" ondrop="onDrop(event,'bf')"><span class="zone-empty">Nothing in play — drag cards here</span></div>
+    <div class="mana-pool" id="mana-pool" style="margin-top:6px;">
+      <span class="mana-lbl">MANA POOL:</span>
+      <span style="font-size:10px;color:var(--text3);font-style:italic;">Tap lands to add mana</span>
+    </div>
+    <div style="margin-top:8px;">
+      <div class="zone-label">GRAVEYARD <span id="gy-count">0</span></div>
+      <div class="dropzone gy-dz" id="dz-gy" ondragover="onDragOver(event,'gy')" ondragleave="onDragLeave('gy')" ondrop="onDrop(event,'gy')"><span class="zone-empty">Empty</span></div>
+    </div>
+    <div style="margin-top:8px;">
+      <div class="zone-label" style="color:var(--orange);">EXILE <span id="exile-count" style="color:var(--orange);">0</span></div>
+      <div class="dropzone exile-dz" id="dz-exile" ondragover="onDragOver(event,'exile')" ondragleave="onDragLeave('exile')" ondrop="onDrop(event,'exile')"><span class="exile-empty">Nothing exiled</span></div>
+    </div>
+  </div>
+
+  <!-- COMBO STATUS (game mode only) -->
+  <div id="cs-section" style="display:none;margin-bottom:8px;">
+    <div class="zone-label">COMBO ASSEMBLY</div>
+    <div id="combo-status"></div>
+  </div>
+
+  <!-- PROBABILITY CALC -->
+  <div class="panel collapsed" id="panel-prob">
+    <div class="panel-head" onclick="togglePanel('panel-prob')">
+      <span class="panel-title">PROBABILITY CALCULATOR</span>
+      <span class="panel-meta">Draw odds for key pieces</span>
+      <span class="panel-toggle">▼</span>
+    </div>
+    <div class="panel-body">
+      <div class="prob-row">
+        <span class="prob-label">Cards left in library:</span>
+        <input class="prob-input" id="prob-lib" type="number" value="93" min="1" max="99" oninput="calcProb()">
+      </div>
+      <div class="prob-row">
+        <span class="prob-label">Cards that win me the game:</span>
+        <input class="prob-input" id="prob-outs" type="number" value="1" min="1" max="20" oninput="calcProb()">
+      </div>
+      <div class="prob-row">
+        <span class="prob-label">Draws to look at:</span>
+        <input class="prob-input" id="prob-draws" type="number" value="3" min="1" max="20" oninput="calcProb()">
+      </div>
+      <div class="prob-result" id="prob-result"></div>
+    </div>
+  </div>
+
+  <!-- CARD PICKER -->
+  <div class="panel" id="panel-picker">
+    <div class="panel-head" onclick="togglePanel('panel-picker')">
+      <span class="panel-title">CARD PICKER</span>
+      <span class="panel-meta">Click destination zone first</span>
+      <span class="panel-toggle open">▼</span>
+    </div>
+    <div class="panel-body">
+      <div class="add-zone-row" id="azrow">
+        <button class="azb hand sel" onclick="setAddZone('hand',this)">+ HAND</button>
+        <button class="azb bf" id="azb-bf" onclick="setAddZone('bf',this)" style="display:none;">+ BATTLEFIELD</button>
+        <button class="azb gy" id="azb-gy" onclick="setAddZone('gy',this)" style="display:none;">+ GRAVEYARD</button>
+      <button class="azb" id="azb-exile" onclick="setAddZone('exile',this)" style="display:none;background:rgba(240,152,32,.07);color:var(--orange);border-color:rgba(240,152,32,.2);">+ EXILE</button>
+        <button class="azb clr" onclick="clearAll()">CLEAR</button>
+      </div>
+      <input class="picker-search" id="psearch" placeholder="Search card name or text..." oninput="renderPicker()">
+      <div class="pfilters" id="pfilters"></div>
+      <div class="picker-grid" id="pgrid"></div>
+    </div>
+  </div>
+
+</div><!-- /left -->
+
+<!-- RIGHT PANEL -->
+<div id="right">
+  <div id="r-head">
+    <div class="r-title" id="r-title">🎴 Mulligan Evaluator</div>
+    <div class="r-sub" id="r-sub">Select your opening 7 cards then click Evaluate</div>
+  </div>
+  <div id="history-area">
+    <div class="empty-state" id="empty-msg">Select your opening hand from the card picker on the left, then hit <strong style="color:var(--gold)">Evaluate</strong> to get a full keep/mulligan breakdown with reasoning for every card.</div>
+    <div id="hist-list"></div>
+  </div>
+  <div id="situations">
+    <div class="sit-title" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="toggleSituations()">
+      <span>⚡ QUICK SITUATIONS</span>
+      <span id="sit-toggle" style="font-size:11px;color:var(--text3);">▼ show</span>
+    </div>
+    <div class="sit-btns" id="sit-btns" style="display:none;margin-top:6px;"></div>
+  </div>
+  <div id="ask-zone">
+    <textarea class="ctx-input" id="ctx-input" placeholder="Extra context (optional)..."></textarea>
+    <button class="ask-btn" id="ask-btn" onclick="askAI()">
+      <span id="ask-lbl">✨ EVALUATE HAND</span>
+    </button>
+  </div>
+</div>
+</div><!-- /app -->
+
+<div id="tt"><div id="tt-name"></div><div id="tt-type"></div><div id="tt-text"></div></div>
+
+<script>
+// ══════════════════════ API KEY ══════════════════════
+let _apiKey = '';
+function checkApiKey(){
+  const val=document.getElementById('api-key-field').value.trim();
+  document.querySelector('.api-save-btn').style.background=val.startsWith('sk-')?'rgba(39,196,122,.22)':'rgba(39,196,122,.12)';
+}
+function saveApiKey(){
+  const val=document.getElementById('api-key-field').value.trim();
+  if(!val||!val.startsWith('sk-')){showToast('Key must start with sk-ant-...');return;}
+  _apiKey=val;
+  document.getElementById('api-banner').style.display='none';
+  document.getElementById('api-ok-banner').style.display='flex';
+  document.getElementById('api-key-field').value='';
+}
+function clearApiKey(){
+  _apiKey='';
+  document.getElementById('api-ok-banner').style.display='none';
+  document.getElementById('api-banner').style.display='flex';
+}
+
+// ══════════════════════ DATA ══════════════════════
+const CARDS=[
+  // NOTE: The Scarab God is the commander — he lives in the command zone, never in the library or hand
+  // He is intentionally excluded from the card picker below
+  // ['The Scarab God','creature',false,false,false,5,'...'],
+  ['Gravecrawler','creature',false,false,true,1,"Can't block. Cast from GRAVEYARD (not exile) while you control a Zombie. If exiled, it is gone permanently."],
+  ['Putrid Goblin','creature',false,false,true,2,'Persist. Persist Loop piece — sac to Altar of Dementia, counters cancel, loop forever.'],
+  ['Metallic Mimic','creature',false,false,false,2,'Choose Zombie. Each other Zombie ETBs with a free +1/+1 counter.'],
+  ['Cryptbreaker','creature',false,false,false,1,'Tap+discard: make 2/2 Zombie. Tap 3 untapped Zombies: draw a card.'],
+  ['Undead Augur','creature',false,false,false,2,'When this or another Zombie dies, draw a card and lose 1 life.'],
+  ['Diregraf Captain','creature',false,false,true,3,'Other Zombies +1/+1. When any Zombie dies, target opponent loses 1 life.'],
+  ['Death Baron','creature',false,false,false,3,'Other Zombies get +1/+1 and deathtouch.'],
+  ['Cemetery Reaper','creature',false,false,false,3,'Zombies +1/+1. Exile from any grave: make 2/2 Zombie.'],
+  ['Shepherd of Rot','creature',false,false,true,2,'Tap: Each player loses 1 life per Zombie you control.'],
+  ['Lord of the Undead','creature',false,false,false,3,'Zombies +1/+1. {1}{B}: Return Zombie from grave to top of library.'],
+  ['Undead Warchief','creature',false,false,false,4,'Zombie spells cost {1} less. Zombies get +2/+1.'],
+  ['Midnight Reaper','creature',false,false,false,3,'When any nontoken Zombie dies, draw a card and lose 1 life.'],
+  ['Corpse Harvester','creature',false,false,false,4,'Tap+sac creature: Tutor for any Zombie AND a Swamp.'],
+  ['Plague Belcher','creature',false,false,true,3,'Menace. ETB: two -1/-1 counters on a creature. Each opponent loses 1 on zombie death.'],
+  ['Havengul Lich','creature',false,false,false,5,'{1}: Cast creature from any grave. Gains all its activated abilities.'],
+  ['Fleshbag Marauder','creature',false,false,false,3,'ETB: Each player sacrifices a creature.'],
+  ['Carrion Feeder','creature',false,false,true,1,"Can't block. Sac creature: +1/+1 counter on Carrion Feeder."],
+  ['Diregraf Colossus','creature',false,false,true,4,'+1/+1 per Zombie in grave on ETB. When you cast a Zombie, create a 2/2 token.'],
+  ['Grave Titan','creature',false,false,true,6,'Deathtouch. ETB or attack: create two tapped 2/2 Zombie tokens.'],
+  ['Graveborn Muse','creature',false,false,false,4,'Upkeep: Draw X cards, lose X life (X = Zombies you control).'],
+  ['Vengeful Dead','creature',false,false,true,4,'When another Zombie dies, each other player loses 1 life.'],
+  ['Blood Artist','creature',false,false,true,2,'When Blood Artist or any creature dies, target player loses 1, you gain 1.'],
+  ['Phyrexian Altar','artifact',false,true,true,3,'Sac a creature: Add one mana of any color.'],
+  ["Ashnod's Altar",'artifact',false,true,true,3,'Sac a creature: Add {C}{C}.'],
+  ['Altar of Dementia','artifact',false,false,true,2,"Sac a creature: Target player mills that creature's power worth of cards."],
+  ['Thran Vigil','enchantment',false,false,true,2,'When artifact/creature goes to grave on your turn, put +1/+1 on target creature.'],
+  ['Nim Deathmantle','artifact',false,false,true,2,'Equipped +2/+2. When it dies, pay {4}: return it with Equipment attached.'],
+  ['Rooftop Storm','enchantment',false,false,true,6,'You may pay {0} to cast Zombie spells.'],
+  ['Intruder Alarm','enchantment',false,false,false,3,'Whenever a creature ETBs, tap all creatures.'],
+  ['Endless Ranks of the Dead','enchantment',false,false,false,4,'Upkeep: Make X 2/2 Zombie tokens (X = half your zombie count).'],
+  ['Rhystic Study','enchantment',false,false,false,3,'Opponents cast spells: you may draw unless they pay {1}.'],
+  ['Kindred Discovery','enchantment',false,false,false,5,'Choose a type. When that type ETBs or attacks, draw a card.'],
+  ['Skullclamp','artifact',false,false,false,1,'Equipped +1/-1. When it dies, draw 2 cards. Equip {1}.'],
+  ['Training Grounds','enchantment',false,false,false,1,'Activated abilities of creatures cost up to {2} less.'],
+  ['Necropotence','enchantment',false,false,false,3,'Skip draw. Pay 1 life: exile top card, put in hand at EOT.'],
+  ['Diabolic Tutor','sorcery',false,false,false,4,'Search library for any card, put in hand. Shuffle.'],
+  ['Vampiric Tutor','instant',false,false,false,1,'Search for any card, put on top. Shuffle. Lose 2 life.'],
+  ['Diabolic Intent','sorcery',false,false,false,2,'Sac a creature: Search library for any card, put in hand.'],
+  ["Lim-Dul's Vault",'instant',false,false,false,2,'Look at top 5. Pay 1 life to put on bottom and see 5 more. Repeat.'],
+  ['Cyclonic Rift','instant',false,false,false,2,'Bounce target nonland. Overload {6}{U}: bounce ALL opponents permanents.'],
+  ['Force of Will','instant',false,false,false,5,'Exile blue card from hand: counter any spell for free.'],
+  ['Fierce Guardianship','instant',false,false,false,3,'Free if you control your commander. Counter noncreature spell.'],
+  ['Force of Negation','instant',false,false,false,3,'Free on opponents turns (exile blue). Counter noncreature spell.'],
+  ['Fatal Push','instant',false,false,false,1,'Destroy creature CMC 2 or less. Revolt: CMC 4 or less.'],
+  ['Kindred Dominance','sorcery',false,false,false,7,'Choose type. Destroy all creatures not of that type.'],
+  ['Toxic Deluge','sorcery',false,false,false,3,'Pay X life: all creatures -X/-X until EOT.'],
+  ['Damnation','sorcery',false,false,false,4,"Destroy all creatures. Can't regenerate."],
+  ['Swan Song','instant',false,false,false,1,'Counter enchantment/instant/sorcery. Controller gets 2/2 Bird.'],
+  ['Counterspell','instant',false,false,false,2,'Counter target spell.'],
+  ['Reanimate','sorcery',false,false,false,1,'Put target creature from any grave onto battlefield. Lose life = its CMC.'],
+  ["Yawgmoth's Will",'sorcery',false,false,false,3,'Until EOT, play cards from your graveyard.'],
+  ["Patriarch's Bidding",'sorcery',false,false,false,5,'Each player chooses type. Return all creatures of chosen types from all graves.'],
+  ['Liliana, Dreadhorde General','planeswalker',false,false,false,6,'+1: Make 2/2 Zombie. -4: Draw then sac per creature. -9: Each opp sacrifices permanents.'],
+  ['Buried Alive','sorcery',false,false,false,3,'Search library for up to 3 creature cards, put in graveyard.'],
+  ['Mikaeus, the Unhallowed','creature',false,false,true,6,'Non-humans get +1/+1 and undying. Key piece of 2-card kill with Ballista.'],
+  ['Walking Ballista','artifact',false,false,true,0,'X/X with X counters. Remove counter: deal 1 damage. Infinite kill with Mikaeus.'],
+  ['Exsanguinate','sorcery',false,false,false,2,'Each opponent loses X life. You gain that much.'],
+  ['Necroduality','enchantment',false,false,false,4,'When nontoken Zombie ETBs, create a copy token.'],
+  ['Relentless Dead','creature',false,false,false,2,'Menace. Dies: pay {B} to return to hand. Pay {B}: return lower-CMC Zombie to battlefield.'],
+  ['Lightning Greaves','artifact',false,false,false,2,'Equipped has haste and shroud. Equip {0}.'],
+  ['Sol Ring','artifact',false,true,false,1,'{T}: Add {C}{C}. Best turn-1 play in Commander.'],
+  ['Arcane Signet','artifact',false,true,false,2,'{T}: Add {U} or {B}.'],
+  ['Dimir Signet','artifact',false,true,false,2,'{1},{T}: Add {U}{B}.'],
+  ['Talisman of Dominance','artifact',false,true,false,2,'{T}: Add {C}. Or add {U}/{B}, lose 1 life.'],
+  ['Chrome Mox','artifact',false,true,false,0,'Imprint nonbasic card. {T}: Add its colors. Game Changer.'],
+  ['Mox Diamond','artifact',false,true,false,0,'Discard a land or sac this. {T}: Add any color. Game Changer.'],
+  ['Command Tower','land',true,false,false,0,'{T}: Add any color in your commanders color identity.'],
+  ['Castle Locthwain','land',true,false,false,0,'{T}: Add {B}. Pay life+{1}{B}{B}: Draw a card.'],
+  ['Cabal Coffers','land',true,false,false,0,'{2},{T}: Add {B} per Swamp. Insane with Urborg.'],
+  ['Urborg, Tomb of Yawgmoth','land',true,false,false,0,'Each land is a Swamp. Makes Cabal Coffers generate massive mana.'],
+  ['Phyrexian Tower','land',true,false,false,0,'{T}: Add {C}. Sac creature: Add {B}{B}.'],
+  ['Cavern of Souls','land',true,false,false,0,'Name Zombie. Those spells become uncounterable.'],
+  ['Nykthos, Shrine to Nyx','land',true,false,false,0,'{2},{T}: Add mana equal to your devotion.'],
+  ['Underground Sea','land',true,false,false,0,'{T}: Add {U} or {B}. Best dual land.'],
+  ['Polluted Delta','land',true,false,false,0,'Pay 1 life, sac: Fetch Island or Swamp.'],
+  ['Flooded Strand','land',true,false,false,0,'Pay 1 life, sac: Fetch Island or Swamp.'],
+  ['Bloodstained Mire','land',true,false,false,0,'Pay 1 life, sac: Fetch Swamp or Mountain.'],
+  ['Marsh Flats','land',true,false,false,0,'Pay 1 life, sac: Fetch Plains or Swamp.'],
+  ['Watery Grave','land',true,false,false,0,'{T}: Add {U} or {B}. ETB tapped unless pay 2 life.'],
+  ['Morphic Pool','land',true,false,false,0,'{T}: Add {U} or {B}.'],
+  ['Clearwater Pathway','land',true,false,false,0,'Choose {U} or {B} on ETB.'],
+  ['Drowned Catacomb','land',true,false,false,0,'{T}: Add {U} or {B} if you control Island or Swamp.'],
+  ['Unholy Grotto','land',true,false,false,0,'{B}: Put target Zombie from grave on top of library.'],
+  ['Tainted Isle','land',true,false,false,0,'{T}: Add {U} or {B} if you control a Swamp.'],
+  ['Darkslick Shores','land',true,false,false,0,'ETB untapped if you control 2 or fewer other lands.'],
+  ['Island','land',true,false,false,0,'{T}: Add {U}.'],
+  ['Swamp','land',true,false,false,0,'{T}: Add {B}.'],
+];
+
+const COMBOS=[
+  {n:'Persist Loop',p:['Putrid Goblin','Altar of Dementia','Thran Vigil'],w:'Infinite mill + drain',owned:true},
+  {n:'Titan Mana',p:['Grave Titan',"Ashnod's Altar",'Nim Deathmantle'],w:'Infinite mana → Exsanguinate',owned:true},
+  {n:'Drain Loop',p:['Gravecrawler','Phyrexian Altar','Diregraf Captain'],w:'Infinite damage'},
+  {n:'Mill Loop',p:['Gravecrawler','Rooftop Storm','Altar of Dementia'],w:'Mill all libraries'},
+  {n:'Token Flood',p:['Gravecrawler','Phyrexian Altar','Diregraf Colossus'],w:'Infinite tokens'},
+  {n:'Mikaeus Kill',p:['Mikaeus, the Unhallowed','Walking Ballista'],w:'2-card instant kill'},
+  {n:'Alarm Loop',p:['Rooftop Storm','Intruder Alarm','Cryptbreaker'],w:'Infinite tokens + draw'},
+];
+
+const LAND_MANA={
+  'Command Tower':'B','Castle Locthwain':'B','Cabal Coffers':'B',
+  'Urborg, Tomb of Yawgmoth':'B','Phyrexian Tower':'C',
+  'Cavern of Souls':'C','Nykthos, Shrine to Nyx':'B',
+  'Underground Sea':'U','Watery Grave':'U','Morphic Pool':'U',
+  'Clearwater Pathway':'U','Drowned Catacomb':'U',
+  'Tainted Isle':'U','Darkslick Shores':'U',
+  'Polluted Delta':'B','Flooded Strand':'B','Bloodstained Mire':'B','Marsh Flats':'B',
+  'Unholy Grotto':'B','Island':'U','Swamp':'B',
+};
+
+const QUICK_THREATS=['Rest in Peace','Rhystic Study','Cyclonic Rift','Dockside Extortionist','Smothering Tithe','Grand Arbiter','Ad Nauseam','Thassa Oracle','Karn Liberated','Opposition Agent','Stranglehold','Null Rod','Grafdiggers Cage','Leyline of the Void','Seedborn Muse'];
+const QUICK_SITS=['Someone is about to combo','My combo just got countered','Graveyard hate resolved','Board wipe incoming','Just tutored, looking for advice','Being attacked, need blockers','Opponents are low on cards','I am running low on cards','Free counter has been used','Opponents all have open mana'];
+
+// ══════════════════════ STATE ══════════════════════
+let G={
+  mode:'mulligan',turn:1,addZone:'hand',pFilter:'All',
+  hand:[],
+  bf:[],  // [{id,name,tapped}]
+  gy:[],
+  exile:[],  // permanently removed — cannot be cast
+  lives:{You:40,Opp1:40,Opp2:40,Opp3:40},
+  oppThreats:{Opp1:[],Opp2:[],Opp3:[]},
+  manaPool:[],
+  activeSits:new Set(),
+  history:[],
+  dragSrc:null,dragSrcZone:null,
+  mullCount:0,
+};
+
+let _prevReadyCombos=new Set();
+let timerSecs=180,timerRunning=false,timerInterval=null;
+
+// ══════════════════════ TIMER ══════════════════════
+function timerToggle(){
+  timerRunning=!timerRunning;
+  document.getElementById('tbtn-start').textContent=timerRunning?'⏸':'▶';
+  if(timerRunning){timerInterval=setInterval(timerTick,1000);}
+  else{clearInterval(timerInterval);}
+}
+function timerTick(){
+  if(timerSecs<=0){timerRunning=false;clearInterval(timerInterval);document.getElementById('tbtn-start').textContent='▶';return;}
+  timerSecs--;renderTimer();
+}
+function timerReset(){
+  clearInterval(timerInterval);timerRunning=false;
+  timerSecs=parseInt(document.getElementById('timer-preset').value)||180;
+  document.getElementById('tbtn-start').textContent='▶';renderTimer();
+}
+function timerPreset(){timerReset();}
+function renderTimer(){
+  const m=Math.floor(timerSecs/60),s=timerSecs%60;
+  const el=document.getElementById('timer-display');
+  el.textContent=`${m}:${s.toString().padStart(2,'0')}`;
+  el.className=timerSecs<=10?'crit':timerSecs<=30?'warn':'';
+}
+
+// ══════════════════════ PANELS ══════════════════════
+function togglePanel(id){
+  const p=document.getElementById(id);
+  p.classList.toggle('collapsed');
+  const toggle=p.querySelector('.panel-toggle');
+  toggle.classList.toggle('open',!p.classList.contains('collapsed'));
+}
+
+// ══════════════════════ MODE ══════════════════════
+function setMode(mode,btn){
+  G.mode=mode;
+  document.body.classList.toggle('mulligan-mode', mode==='mulligan');
+  document.body.classList.toggle('game-mode', mode==='game');
+  document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const game=mode==='game';
+  document.getElementById('bf-section').style.display=game?'block':'none';
+  document.getElementById('cs-section').style.display=game?'block':'none';
+  document.getElementById('azb-bf').style.display=game?'inline-block':'none';
+  document.getElementById('azb-gy').style.display=game?'inline-block':'none';
+  document.getElementById('azb-exile').style.display=game?'inline-block':'none';
+  document.getElementById('r-title').textContent=game?'⚔️ Live Strategy Advisor':'🎴 Mulligan Evaluator';
+  document.getElementById('r-sub').textContent=game?'Update game state then get turn-specific advice':'Select opening 7 cards then click Evaluate';
+  document.getElementById('ask-lbl').textContent=game?'✨ GET STRATEGY ADVICE':'✨ EVALUATE HAND';
+  document.getElementById('empty-msg').textContent=game?'Set up your game state using the card picker, then click Get Strategy Advice.':'Select your opening hand from the card picker, then click Evaluate for a full mulligan breakdown.';
+  // Show/hide mull counter
+  const mullRow=document.getElementById('mull-counter-row');
+  if(mullRow) mullRow.style.display=game?'none':'flex';
+  if(!game) setAddZone('hand',document.querySelector('.azb.hand'));
+  renderPicker();renderComboStatus();
+}
+
+function toggleSituations(){
+  const btns = document.getElementById('sit-btns');
+  const toggle = document.getElementById('sit-toggle');
+  const open = btns.style.display === 'none';
+  btns.style.display = open ? 'flex' : 'none';
+  toggle.textContent = open ? '▲ hide' : '▼ show';
+}
+
+function adjTurn(n){
+  G.turn=Math.max(1,G.turn+n);
+  document.getElementById('turn-num').textContent=G.turn;
+}
+
+function adjMull(n){
+  G.mullCount=Math.max(0,Math.min(3,G.mullCount+n));
+  const labels=['Opening 7 (free mull available)','1st Mull → draw 7, bottom 1 (FREE)','2nd Mull → keep 6 cards','3rd Mull → keep 5 cards'];
+  const colors=['var(--gold)','var(--green)','var(--orange)','var(--red2)'];
+  const lbl=document.getElementById('mull-count-lbl');
+  if(lbl){lbl.textContent=labels[G.mullCount];lbl.style.color=colors[G.mullCount];}
+  // Update hand max size
+  const maxHand=[7,7,6,5][G.mullCount];
+  document.getElementById('hand-count').textContent=`${G.hand.length} / ${maxHand} cards`;
+}
+
+// ══════════════════════ ZONES ══════════════════════
+function setAddZone(z,btn){
+  G.addZone=z;
+  document.querySelectorAll('.azb').forEach(b=>{if(!b.classList.contains('clr'))b.classList.remove('sel');});
+  btn.classList.add('sel');
+}
+
+function cardCss(name){
+  const c=CARDS.find(x=>x[0]===name);
+  if(!c) return 'h-spell';
+  if(c[2]) return 'h-land';
+  if(c[3]) return 'h-rock';
+  if(c[4]) return 'h-combo';
+  return 'h-spell';
+}
+
+function makeZCard(id,name,zone){
+  const el=document.createElement('div');
+  const card=CARDS.find(c=>c[0]===name);
+  const bfItem=zone==='bf'?G.bf.find(x=>x.id===id):null;
+  const isTapped=bfItem?.tapped||false;
+  let tappedClass='';
+  if(isTapped){
+    if(card&&card[2]) tappedClass=' tapped-land';
+    else if(card&&card[1]==='creature') tappedClass=' tapped-creature';
+    else tappedClass=' tapped-other';
+  }
+  el.className=`zcard ${cardCss(name)}${tappedClass}`;
+  el.draggable=true;
+  el.dataset.id=id; el.dataset.zone=zone;
+  el.setAttribute('data-sf',name);
+el.innerHTML=name+'<span class="zx" title="Remove">✕</span>';
+  if(card){
+    el.addEventListener('mouseenter',e=>showTT(e,card));
+    el.addEventListener('mousemove',moveTT);
+    el.addEventListener('mouseleave',hideTT);
+  }
+  el.addEventListener('dragstart',e=>{
+    G.dragSrc=id; G.dragSrcZone=zone;
+    e.dataTransfer.effectAllowed='move';
+    setTimeout(()=>el.style.opacity='.4',0);
+  });
+  el.addEventListener('dragend',()=>{el.style.opacity='';});
+  el.querySelector('.zx').addEventListener('click',e=>{
+    e.stopPropagation();
+    if(zone==='hand') G.hand=G.hand.filter(n=>n!==id);
+    else if(zone==='bf') G.bf=G.bf.filter(x=>x.id!==id);
+    else if(zone==='gy') G.gy=G.gy.filter(n=>n!==id);
+    renderAll();
+  });
+  // tap/untap for lands in bf
+  if(zone==='bf' && card && card[2]){
+    el.style.cursor='pointer';
+    el.addEventListener('click',e=>{if(e.target.classList.contains('zx'))return;toggleTap(id);});
+  }
+  return el;
+}
+
+// ══════════════════════ TAP/UNTAP ══════════════════════
+function toggleTap(id){
+  const item=G.bf.find(x=>x.id===id);
+  if(!item) return;
+  const wasUntapped=!item.tapped;
+  item.tapped=!item.tapped;
+  if(wasUntapped){
+    const mana=LAND_MANA[item.name]||'C';
+    G.manaPool.push({type:mana,id:Date.now()+'_'+Math.random()});
+  } else {
+    // untapping doesn't remove mana (spent separately)
+  }
+  renderBF(); renderMana();
+}
+
+function spendMana(mid){
+  G.manaPool=G.manaPool.filter(m=>m.id!==mid);
+  renderMana();
+}
+
+// ══════════════════════ DRAG & DROP ══════════════════════
+function onDragOver(e,zone){
+  e.preventDefault();e.dataTransfer.dropEffect='move';
+  document.getElementById('dz-'+zone).classList.add('drag-over');
+}
+function onDragLeave(zone){
+  document.getElementById('dz-'+zone).classList.remove('drag-over');
+}
+function onDrop(e,targetZone){
+  e.preventDefault();
+  document.getElementById('dz-'+targetZone).classList.remove('drag-over');
+  if(!G.dragSrc||G.dragSrcZone===targetZone) return;
+  const srcZone=G.dragSrcZone;
+  let name='';
+  if(srcZone==='hand'){name=G.dragSrc;G.hand=G.hand.filter(n=>n!==G.dragSrc);}
+  else if(srcZone==='bf'){const item=G.bf.find(x=>x.id===G.dragSrc);name=item?.name||'';G.bf=G.bf.filter(x=>x.id!==G.dragSrc);}
+  else if(srcZone==='gy'){name=G.dragSrc;G.gy=G.gy.filter(n=>n!==G.dragSrc);}
+  else if(srcZone==='exile'){name=G.dragSrc;G.exile=G.exile.filter(n=>n!==G.dragSrc);}
+  if(name) addToZone(name,targetZone);
+  G.dragSrc=null;G.dragSrcZone=null;
+}
+
+// ══ COMMANDER ZONE ══
+let _cmdOnBF = false;
+function castCommander(){
+  if(_cmdOnBF){ showToast('Scarab God is already on the battlefield'); return; }
+  _cmdOnBF = true;
+  G.bf.push({id:'scarab_god_cmd',name:'The Scarab God',tapped:false});
+  document.getElementById('cmd-cast-btn').style.display='none';
+  document.getElementById('cmd-return-btn').style.display='inline-block';
+  renderBF(); renderComboStatus();
+  showToast('The Scarab God enters the battlefield!');
+}
+function returnCommander(){
+  // Goes back to command zone (not hand, not graveyard)
+  G.bf = G.bf.filter(x=>x.id!=='scarab_god_cmd');
+  _cmdOnBF = false;
+  document.getElementById('cmd-cast-btn').style.display='inline-block';
+  document.getElementById('cmd-return-btn').style.display='none';
+  renderBF();
+  showToast('Scarab God returned to command zone — no commander tax needed');
+}
+
+// Override: if Scarab God somehow gets added to gy, redirect to command zone
+const _origAddToZone = addToZone;
+
+function addToZone(name,zone){
+  if(zone==='hand'){
+    if(G.mode==='mulligan'&&G.hand.length>=7){showToast('Hand is full (max 7)');return;}
+    if(!G.hand.includes(name)) G.hand.push(name);
+  } else if(zone==='bf'){
+    if(!G.bf.find(x=>x.name===name||x.id===name)){
+      G.bf.push({id:name+'_'+Date.now(),name,tapped:false});
+    }
+  } else if(zone==='gy'){
+    if(!G.gy.includes(name)) G.gy.push(name);
+  } else if(zone==='exile'){
+    // Exile is permanent — add with unique id to allow same card exiled multiple times
+    G.exile.push(name);
+  }
+  renderAll();
+}
+
+function pickerClick(name){
+  const inH=G.hand.includes(name);
+  const inB=G.bf.find(x=>x.name===name);
+  const inG=G.gy.includes(name);
+  if(G.addZone==='hand'){
+    if(inH){G.hand=G.hand.filter(n=>n!==name);}
+    else addToZone(name,'hand');
+  } else if(G.addZone==='bf'){
+    if(inB){G.bf=G.bf.filter(x=>x.name!==name);}
+    else addToZone(name,'bf');
+  } else if(G.addZone==='gy'){
+    if(inG){G.gy=G.gy.filter(n=>n!==name);}
+    else addToZone(name,'gy');
+  }
+}
+
+function clearAll(){
+  G.hand=[];G.bf=[];G.gy=[];G.exile=[];G.manaPool=[];renderAll();
+}
+
+// ══════════════════════ RENDER ══════════════════════
+function renderHand(){
+  const el=document.getElementById('dz-hand');
+  const cnt=document.getElementById('hand-count');
+  cnt.textContent=`${G.hand.length}${G.mode==='mulligan'?' / 7':''} cards`;
+  el.innerHTML='';
+  if(!G.hand.length){el.innerHTML='<span class="zone-empty">Click cards below to add to hand</span>';return;}
+  G.hand.forEach(name=>{
+    el.appendChild(makeZCard(name,name,'hand'));
+  });
+}
+
+function renderBF(){
+  const el=document.getElementById('dz-bf');
+  const cnt=document.getElementById('bf-count');
+  if(!el) return;
+  cnt.textContent=`${G.bf.length}`;
+  el.innerHTML='';
+  if(!G.bf.length){el.innerHTML='<span class="zone-empty">Nothing in play</span>';return;}
+  G.bf.forEach(item=>{
+    const bfc=makeZCard(item.id,item.name,'bf');bfc.classList.add('pop-in');el.appendChild(bfc);
+  });
+}
+
+function renderGY(){
+  const el=document.getElementById('dz-gy');
+  const cnt=document.getElementById('gy-count');
+  if(!el) return;
+  cnt.textContent=`${G.gy.length}`;
+  el.innerHTML='';
+  if(!G.gy.length){el.innerHTML='<span class="zone-empty">Empty</span>';return;}
+  G.gy.forEach(name=>{el.appendChild(makeZCard(name,name,'gy'));});
+}
+
+function renderExile(){
+  const el=document.getElementById('dz-exile');
+  const cnt=document.getElementById('exile-count');
+  if(!el) return;
+  cnt.textContent=`${G.exile.length}`;
+  el.innerHTML='';
+  if(!G.exile.length){
+    el.innerHTML='<span class="exile-empty">Nothing exiled — exile is permanent</span>';
+    return;
+  }
+  G.exile.forEach((name,idx)=>{
+    const div=document.createElement('div');
+    div.className='zcard h-exiled';
+    div.title='EXILED — permanently removed. Cannot be cast, retrieved, or used in any combo.';
+    div.setAttribute('data-sf',name);
+    div.innerHTML=`${name} <span style="font-size:9px;opacity:.5;margin-left:3px;cursor:pointer;" title="Remove from exile tracking" onclick="event.stopPropagation();G.exile.splice(${idx},1);renderExile();">✕</span>`;
+    el.appendChild(div);
+  });
+  attachSF&&attachSF();
+}
+
+function renderMana(){
+  const pool=document.getElementById('mana-pool');
+  const hdr=document.getElementById('mana-pool-hdr');
+  if(!pool) return;
+  if(!G.manaPool.length){
+    pool.innerHTML='<span class="mana-lbl">MANA POOL:</span><span style="font-size:10px;color:var(--text3);font-style:italic;">Tap lands to generate mana</span>';
+    hdr.innerHTML='';return;
+  }
+  pool.innerHTML='<span class="mana-lbl">POOL:</span>';
+  hdr.innerHTML='';
+  G.manaPool.forEach(m=>{
+    const styles={B:'mp-B',U:'mp-U',C:'mp-C',G:'mp-G'}[m.type]||'mp-C';
+    const lbl=m.type==='C'?'◆':m.type;
+    const pip=document.createElement('div');
+    pip.className=`mana-pip ${styles}`;pip.title='Click to spend';pip.textContent=lbl;
+    pip.onclick=()=>spendMana(m.id);
+    pool.appendChild(pip);
+    const pip2=pip.cloneNode(true);
+    pip2.onclick=()=>spendMana(m.id);
+    hdr.appendChild(pip2);
+  });
+}
+
+function renderComboStatus(){
+  const el=document.getElementById('combo-status');
+  if(!el) return;
+  // Exile is intentionally excluded — exiled cards are gone permanently
+  const allCards=new Set([...G.hand,...G.bf.map(x=>x.name),...G.gy]);
+  el.innerHTML='';
+  COMBOS.forEach(combo=>{
+    const have=combo.p.filter(p=>allCards.has(p));
+    const missing=combo.p.filter(p=>!allCards.has(p));
+    const ready=have.length===combo.p.length;
+    const close=have.length===combo.p.length-1;
+    const row=document.createElement('div');
+    row.className=`cs-row${ready?' ready':close?' close':''}`;
+    const pips=combo.p.map(p=>`<div class="cs-pip ${allCards.has(p)?'have':''}" title="${p}"></div>`).join('');
+    const lbl=ready?`<span class="cs-badge" style="color:var(--green)">🔥 READY</span>`:close?`<span class="cs-badge" style="color:var(--orange)">1 AWAY: ${missing[0]}</span>`:`<span class="cs-badge" style="color:var(--text3)">${have.length}/${combo.p.length}</span>`;
+    row.innerHTML=`<span class="cs-name" style="color:${ready?'var(--green)':close?'var(--orange)':'var(--text2)'}">${combo.n}${combo.owned?' ★':''}</span><div class="cs-pips">${pips}</div>${lbl}`;
+    el.appendChild(row);
+    // Show notification and play sound for newly ready combos
+    if(ready && !_prevReadyCombos.has(combo.n)){
+      playComboReady();
+      _prevReadyCombos.add(combo.n);
+      const notif=document.createElement('div');
+      notif.style.cssText='position:fixed;top:64px;left:50%;transform:translateX(-50%);background:rgba(39,196,122,.97);color:#000;font-family:Cinzel,serif;font-size:12px;font-weight:700;padding:10px 22px;border-radius:8px;z-index:9998;letter-spacing:.06em;box-shadow:0 8px 30px rgba(0,0,0,.6);';
+      notif.textContent='🔥 '+combo.n+' — READY TO EXECUTE!';
+      document.body.appendChild(notif);
+      setTimeout(()=>notif.remove(),2800);
+    } else if(!ready){ _prevReadyCombos.delete(combo.n); }
+  });
+}
+
+// ══════════════════════ LIFE ══════════════════════
+function initLives(){
+  const el=document.getElementById('life-rows');
+  el.innerHTML='';
+  Object.entries(G.lives).forEach(([who,life])=>{
+    const row=document.createElement('div');row.className='life-row';
+    const lc=life<=10?'var(--red2)':life<=20?'var(--orange)':'var(--text)';
+    row.innerHTML=`<span class="life-who">${who}</span><span class="life-val" id="lv-${who}" style="color:${lc}">${life}</span><div class="lbg"><button class="lb" onclick="adjLife('${who}',-1)">−1</button><button class="lb" onclick="adjLife('${who}',-5)">−5</button><button class="lb" onclick="adjLife('${who}',+1)">+1</button><button class="lb" onclick="adjLife('${who}',+5)">+5</button><button class="lb" onclick="adjLife('${who}',40-G.lives['${who}'])">↺</button></div>`;
+    el.appendChild(row);
+  });
+  updateLifeSummary();
+}
+
+function adjLife(who,n){
+  G.lives[who]=Math.max(0,G.lives[who]+n);
+  const el=document.getElementById('lv-'+who);
+  if(el){
+    el.textContent=G.lives[who];
+    el.style.color=G.lives[who]<=10?'var(--red2)':G.lives[who]<=20?'var(--orange)':'var(--text)';
+    el.classList.remove('life-ping');
+    void el.offsetWidth;
+    el.classList.add('life-ping');
+    setTimeout(()=>el.classList.remove('life-ping'),400);
+  }
+  updateLifeSummary();
+}
+
+function updateLifeSummary(){
+  const el=document.getElementById('life-summary');
+  const vals=Object.entries(G.lives).map(([w,l])=>`${w}:${l}`).join(' · ');
+  el.textContent=vals;
+}
+
+// ══════════════════════ OPPONENT TRACKER ══════════════════════
+function initOppTracker(){
+  const el=document.getElementById('opp-tracker');
+  el.innerHTML='';
+  ['Opp1','Opp2','Opp3'].forEach(opp=>{
+    const row=document.createElement('div');row.className='opp-row';
+    row.innerHTML=`<span class="opp-name">${opp}</span><div>
+      <input class="opp-input" id="oi-${opp}" placeholder="Type threat and press Enter..." onkeydown="oppEnter(event,'${opp}')">
+      <div class="opp-tags" id="ot-${opp}"></div>
+    </div>`;
+    el.appendChild(row);
+  });
+  const qt=document.getElementById('quick-threats');
+  QUICK_THREATS.forEach(t=>{
+    const btn=document.createElement('button');
+    btn.className='quick-threat';btn.textContent=t;
+    btn.onclick=()=>{
+      const active=document.querySelector('.azb.sel, .mtab.active');
+      // Find focused opp input or default to Opp1
+      const focused=['Opp1','Opp2','Opp3'].find(o=>document.getElementById('oi-'+o)===document.activeElement)||'Opp1';
+      addOppThreat(focused,t);
+    };
+    qt.appendChild(btn);
+  });
+}
+
+function oppEnter(e,opp){
+  if(e.key!=='Enter') return;
+  const val=e.target.value.trim();
+  if(val){addOppThreat(opp,val);e.target.value='';}
+}
+
+function addOppThreat(opp,threat){
+  if(!G.oppThreats[opp].includes(threat)) G.oppThreats[opp].push(threat);
+  renderOppTags(opp);
+  updateOppSummary();
+}
+
+function renderOppTags(opp){
+  const el=document.getElementById('ot-'+opp);
+  if(!el) return;
+  el.innerHTML='';
+  G.oppThreats[opp].forEach(t=>{
+    const span=document.createElement('span');
+    span.className='opp-tag';span.textContent=t+' ✕';
+    span.onclick=()=>{G.oppThreats[opp]=G.oppThreats[opp].filter(x=>x!==t);renderOppTags(opp);updateOppSummary();};
+    el.appendChild(span);
+  });
+}
+
+function updateOppSummary(){
+  const total=Object.values(G.oppThreats).flat().length;
+  document.getElementById('opp-summary').textContent=total?`${total} threat${total!==1?'s':''} tracked`:'No threats tracked';
+}
+
+// ══════════════════════ QUICK SITUATIONS ══════════════════════
+function initSituations(){
+  const el=document.getElementById('sit-btns');
+  QUICK_SITS.forEach(s=>{
+    const btn=document.createElement('button');
+    btn.className='sit-btn';btn.textContent=s;
+    btn.onclick=()=>{
+      if(G.activeSits.has(s)){G.activeSits.delete(s);btn.classList.remove('on');}
+      else{G.activeSits.add(s);btn.classList.add('on');}
+    };
+    el.appendChild(btn);
+  });
+}
+
+// ══════════════════════ PICKER ══════════════════════
+const PFILTERS=['All','Land','Rock','Combo','Creature','Spell'];
+function initPickerFilters(){
+  const el=document.getElementById('pfilters');
+  el.innerHTML='';
+  PFILTERS.forEach(f=>{
+    const btn=document.createElement('button');
+    btn.className='pf'+(G.pFilter===f?' active':'');
+    btn.textContent=f;
+    btn.onclick=()=>{G.pFilter=f;initPickerFilters();renderPicker();};
+    el.appendChild(btn);
+  });
+}
+
+function renderPicker(){
+  const el=document.getElementById('pgrid');
+  const q=(document.getElementById('psearch')?.value||'').toLowerCase();
+  const f=G.pFilter;
+  const filtered=CARDS.filter(c=>{
+    const mq=!q||c[0].toLowerCase().includes(q)||(c[6]||'').toLowerCase().includes(q);
+    const mf=f==='All'||(f==='Land'&&c[2])||(f==='Rock'&&c[3])||(f==='Combo'&&c[4])||(f==='Creature'&&c[1]==='creature'&&!c[2])||(f==='Spell'&&!c[2]&&!['artifact','land'].includes(c[1]));
+    return mq&&mf;
+  });
+  el.innerHTML='';
+  filtered.forEach(c=>{
+    const inH=G.hand.includes(c[0]);
+    const inB=G.bf.find(x=>x.name===c[0]);
+    const inG=G.gy.includes(c[0]);
+    const btn=document.createElement('button');
+    let cls='pc';
+    if(inH) cls+=' in-h'; else if(inB) cls+=' in-b'; else if(inG) cls+=' in-g';
+    else if(c[2]) cls+=' is-land'; else if(c[4]) cls+=' is-combo';
+    btn.className=cls;btn.textContent=c[0];btn.title=c[6]||'';btn.setAttribute('data-sf',c[0]);
+    btn.addEventListener('mouseenter',e=>showTT(e,c));
+    btn.addEventListener('mousemove',moveTT);
+    btn.addEventListener('mouseleave',hideTT);
+    btn.onclick=()=>pickerClick(c[0]);
+    el.appendChild(btn);
+  });
+}
+
+// ══════════════════════ PROBABILITY CALC ══════════════════════
+function calcProb(){
+  const N=Math.max(1,parseInt(document.getElementById('prob-lib')?.value)||93);
+  const K=Math.max(1,parseInt(document.getElementById('prob-outs')?.value)||1);
+  const n=Math.max(1,parseInt(document.getElementById('prob-draws')?.value)||3);
+  const el=document.getElementById('prob-result');
+  if(!el) return;
+  // Hypergeometric: P(X>=1) = 1 - P(X=0) = 1 - C(N-K,n)/C(N,n)
+  function comb(a,b){if(b>a)return 0;let r=1;for(let i=0;i<b;i++){r=r*(a-i)/(i+1);}return r;}
+  const pNone=comb(N-K,n)/comb(N,n);
+  const pHit=Math.max(0,Math.min(1,1-pNone));
+  const pct=(pHit*100).toFixed(1);
+  const each=(K/N*100).toFixed(1);
+  el.innerHTML=`<strong>Chance of hitting in ${n} draw${n!==1?'s':''}:</strong> ${pct}%<br><strong>Each draw chance:</strong> ${each}%<br><div class="prob-bar"><div class="prob-bar-fill" style="width:${pct}%;background:${pHit>0.6?'var(--green)':pHit>0.3?'var(--orange)':'var(--red)'}"></div></div>`;
+}
+
+// ══════════════════════ TOOLTIP ══════════════════════
+function showTT(e,c){
+  const tt=document.getElementById('tt');
+  document.getElementById('tt-name').textContent=c[0];
+  document.getElementById('tt-type').textContent=c[1]+(c[4]?' — COMBO PIECE':'')+(c[3]?' — MANA ROCK':'')+(c[2]?' — LAND':'');
+  document.getElementById('tt-text').textContent=c[6]||'';
+  tt.style.display='block';moveTT(e);
+}
+function moveTT(e){
+  const tt=document.getElementById('tt');
+  tt.style.left=Math.min(e.clientX+14,window.innerWidth-235)+'px';
+  tt.style.top=Math.min(e.clientY+12,window.innerHeight-130)+'px';
+}
+function hideTT(){document.getElementById('tt').style.display='none';}
+
+// ══════════════════════ TOAST ══════════════════════
+function showToast(msg){
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--bg4);border:1px solid var(--border2);border-radius:6px;padding:8px 16px;font-size:12px;color:var(--text2);z-index:9999;';
+  t.textContent=msg;document.body.appendChild(t);
+  setTimeout(()=>t.remove(),2000);
+}
+
+// ══════════════════════ RENDER ALL ══════════════════════
+function renderAll(){
+  renderHand();renderBF();renderGY();renderExile();renderMana();renderComboStatus();renderPicker();
+  // Attach Scryfall image hovers after DOM updates
+  setTimeout(()=>{
+    document.querySelectorAll('.zcard:not([data-sf])').forEach(el=>{
+      const name=el.textContent.replace('✕','').trim();
+      if(CARDS.find(c=>c[0]===name)) el.setAttribute('data-sf',name);
+    });
+    attachSF();
+  },60);
+}
+
+// ══════════════════════ AI ══════════════════════
+async function askAI(){
+  const btn=document.getElementById('ask-btn');
+  const lbl=document.getElementById('ask-lbl');
+  const ctx=document.getElementById('ctx-input').value.trim();
+  const game=G.mode==='game';
+  const allCards=new Set([...G.hand,...G.bf.map(x=>x.name),...G.gy]); // exile excluded intentionally
+
+  const comboStr=COMBOS.map(c=>{
+    const have=c.p.filter(p=>allCards.has(p));
+    const miss=c.p.filter(p=>!allCards.has(p));
+    return `${c.n}: ${have.length===c.p.length?'COMPLETE':have.length+'/'+c.p.length+' — missing: '+miss.join(', ')}`;
+  }).join('\n');
+
+  const lifeStr=Object.entries(G.lives).map(([w,l])=>`${w}: ${l}`).join(', ');
+  const oppStr=Object.entries(G.oppThreats).filter(([,v])=>v.length).map(([opp,cards])=>`${opp}: ${cards.join(', ')}`).join('\n');
+  const sitsStr=G.activeSits.size?Array.from(G.activeSits).join(', '):'None';
+
+  let userMsg='';
+  const mullLabels=['Opening 7-card hand (first mulligan is FREE — draw 7 again and bottom 1)','First mulligan — drew 7, must bottom 1 (this hand is FREE, no card disadvantage)','Second mulligan — keeping 6 cards (real cost begins here)','Third mulligan — keeping 5 cards (almost always keep this, going lower is rarely correct)'];
+  if(!game){
+    userMsg=`MULLIGAN EVALUATION\n\nMulligan number: ${mullLabels[G.mullCount]}\n\nHand (${G.hand.length} cards):\n${G.hand.join('\n')}\n\nLife totals: ${lifeStr}\nCombos assembled:\n${comboStr}${oppStr?'\nOpponent threats:\n'+oppStr:''}${sitsStr!=='None'?'\nActive situations: '+sitsStr:''}${ctx?'\nExtra context: '+ctx:''}`;
+  } else {
+    userMsg=`LIVE STRATEGY — TURN ${G.turn}\n\nLife totals: ${lifeStr}\n\nHand (${G.hand.length} cards):\n${G.hand.length?G.hand.join('\n'):'Empty'}\n\nBattlefield (${G.bf.length}):\n${G.bf.length?G.bf.map(x=>x.name+(x.tapped?' [TAPPED]':'')).join('\n'):'Nothing'}\n\nGraveyard (${G.gy.length}):\n${G.gy.length?G.gy.join('\n'):'Empty'}\n\nEXILE (${G.exile.length} cards — permanently removed, cannot be cast or retrieved):\n${G.exile.length?G.exile.join('\n'):'Nothing exiled'}\n\nMana pool: ${G.manaPool.length?G.manaPool.map(m=>m.type).join(', '):'Empty'}\n\nCombos assembled:\n${comboStr}${oppStr?'\n\nOpponent threats:\n'+oppStr:''}\nActive situations: ${sitsStr}${ctx?'\nExtra context: '+ctx:''}`;
+  }
+
+  btn.disabled=true;btn.classList.add('loading');
+  lbl.textContent='⏳ ANALYZING...';
+
+  document.getElementById('empty-msg').style.display='none';
+  const loading=document.createElement('div');
+  loading.className='thinking hist-item';
+  loading.innerHTML=`<div class="dots"><span></span><span></span><span></span></div> Analyzing your ${game?'game state':'opening hand'}...`;
+  loading.id='loading-msg';
+  document.getElementById('hist-list').prepend(loading);
+
+  const SYS=`You are an expert MTG Commander pilot for The Scarab God zombie EDH deck (Bracket 4, Dimir). Give specific, direct, actionable advice based on the exact cards presented.
+
+DECK: Zombie tribal + infinite combo, 9 Game Changers, 7 infinite combos, wins turns 5-8.
+
+OWNED COMBOS (all pieces physically owned):
+1. PERSIST LOOP: Putrid Goblin + Altar of Dementia + Thran Vigil = infinite mill/drain [ALL OWNED]
+2. TITAN MANA: Grave Titan + Ashnod's Altar + Nim Deathmantle = infinite mana -> Exsanguinate [ALL OWNED]
+
+OTHER COMBOS:
+3. Gravecrawler + Phyrexian Altar + Diregraf Captain = infinite drain
+4. Gravecrawler + Rooftop Storm + Altar of Dementia = mill all
+5. Gravecrawler + Phyrexian Altar + Diregraf Colossus = infinite tokens
+6. Mikaeus the Unhallowed + Walking Ballista = 2-card kill
+7. Rooftop Storm + Intruder Alarm + Cryptbreaker = infinite tokens
+
+COMMANDER ZONE RULES:
+- The Scarab God is the commander. He starts in the command zone, NOT the library or hand.
+- He is ALWAYS available to cast from the command zone for {3}{U}{B} (no commander tax unless he has been returned to command zone previously this game).
+- When he is removed from the battlefield he goes back to the COMMAND ZONE (owner's choice), not the graveyard. He then returns to the player's hand at the beginning of the end step if he went to the graveyard — but in Commander players almost always choose command zone.
+- He should NEVER appear as a card to draw from the library.
+- Never tell the player to tutor for or draw The Scarab God — he is always accessible from the command zone.
+
+CRITICAL ZONE RULES — NEVER CONFUSE THESE:
+- GRAVEYARD: Cards here CAN be interacted with. Gravecrawler can be cast FROM the graveyard. Reanimate, Yawgmoths Will, Havengul Lich all interact with the graveyard.
+- EXILE: Cards in exile are PERMANENTLY REMOVED from the game. Gravecrawler in exile CANNOT be cast. No card in this deck can retrieve cards from exile unless explicitly stated. If Gravecrawler is exiled (by Path to Exile, Rest in Peace, Soul-Guide Lantern, etc.) it is GONE for the rest of the game and the Drain Loop and Mill Loop combos that require it are unavailable.
+- HAND: Cards here are castable normally.
+- BATTLEFIELD: Cards here are in play and active.
+- STACK: Spells being cast, not yet resolved.
+Never tell the player they can cast Gravecrawler or any other card from exile. Exile is a dead zone.
+- Combo on opponents end step, not your main phase
+- Scarab God returns to HAND (not command zone) when removed - never pay commander tax
+- Free counters: Force of Will (exile blue card), Fierce Guardianship (free with commander in play)
+- Training Grounds cuts Scarab God activation from {4} to {2}
+- Diabolic Intent + sac a zombie = tutor for anything
+- Phyrexian Tower = sac outlet + {BB}
+- Entomb + Reanimate on turn 3 = Grave Titan into play for just {B}
+
+MULLIGAN RULES — LONDON MULLIGAN SYSTEM:
+CRITICAL: The first mulligan is FREE — you draw 7 cards again and just put 1 back on the bottom. This means the bar for keeping a 7-card hand is LOWER than most people think, because shipping it costs nothing except putting 1 card on the bottom.
+
+7-CARD HAND (first look): Keep if there is ANY functional game plan. Ship only true disasters.
+- KEEP: 2-3 lands + any early play at all — even without a rock or tutor
+- KEEP: 1 land + 2 rocks (Sol Ring + Signet covers for the missing land drop)
+- KEEP: Any hand with the full Persist Loop (Putrid Goblin + Altar of Dementia + Thran Vigil) regardless of other cards
+- KEEP: Any hand with 2 lands + any single payoff card — you have 7 draws to find more
+- SNAP KEEP: 2 lands + rock + any tutor — this is a premium hand
+- MULL: 0 lands and 0 rocks (truly unplayable)
+- MULL: 6-7 lands (completely flooded)
+- MULL: No black mana source of any kind AND no way to find one
+- MULL: 7 cards with CMC 5+ across the board and zero early plays
+
+FIRST MULLIGAN → draw 7, bottom 1 (FREE, no card disadvantage):
+- Keep more liberally than the first hand since you get to bottom your worst card
+- KEEP: 2 lands + anything remotely actionable
+- KEEP: 1 land + 2 rocks
+- MULL: Still 0-1 lands with no rocks
+
+SECOND MULLIGAN → keep 6 cards (real cost begins):
+- Keep almost everything with 2 lands
+- KEEP: 2 lands + 1 spell of any kind
+- MULL: Only if truly 0-1 lands with no path forward
+
+THIRD MULLIGAN → keep 5 cards:
+- Keep any hand with 2 lands. You are heavily disadvantaged at 5 cards and going lower is almost never correct.
+- Only mull to 4 if you have 0 lands and 0 rocks. Otherwise keep.
+
+ALWAYS STATE which mulligan number this is (1st free mull / 2nd mull to 6 / 3rd mull to 5) and adjust advice accordingly. Be ENCOURAGING about keeping borderline hands — a free first mulligan means the threshold for shipping is HIGH.
+
+FOR GAME STRATEGY: Give this turns best specific play. What to tutor for right now. Combo status and next piece needed. Whether to go for kill or wait. Threats to watch. Counter advice. Be direct and reference actual card names shown. Keep it concise - the player is in a live game.`;
+
+  try{
+    const apiKey = typeof _apiKey !== 'undefined' && _apiKey ? _apiKey : null;
+    const headers = {'Content-Type':'application/json','anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+    if(apiKey) headers['x-api-key'] = apiKey;
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers,
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:900,
+        system:SYS,
+        messages:[{role:'user',content:userMsg}]
+      })
+    });
+    const data=await res.json();
+    if(data.error){
+      document.getElementById('loading-msg')?.remove();
+      pushHistory(`API Error: ${data.error.message}`,'Error');
+    } else {
+      const text=data.content?.[0]?.text||'No response received.';
+      document.getElementById('loading-msg')?.remove();
+      pushHistory(text,game?`Turn ${G.turn} — Live Strategy`:`Mulligan — ${G.hand.length} cards`);
+    }
+  } catch(err){
+    document.getElementById('loading-msg')?.remove();
+    const isCors=err.message.includes('fetch');
+    pushHistory(isCors?`Connection blocked. If opening as a file://, run a local server instead:\n\n1. Open Terminal\n2. cd to the folder with this file\n3. Run: python3 -m http.server 8080\n4. Open: http://localhost:8080/scarab_god_live_helper.html\n\nAlso enter your API key from console.anthropic.com in the red banner above.`:`Error: ${err.message}`,'Error — See Instructions');
+  }
+
+  btn.disabled=false;btn.classList.remove('loading');
+  lbl.textContent=game?'✨ GET STRATEGY ADVICE':'✨ EVALUATE HAND';
+}
+
+// ══════════════════════ HISTORY ══════════════════════
+function pushHistory(text,meta){
+  G.history.unshift({text,meta,ts:new Date().toLocaleTimeString()});
+  if(G.history.length>6) G.history.pop();
+  renderHistory();
+}
+
+function renderHistory(){
+  const el=document.getElementById('hist-list');
+  el.innerHTML='';
+  G.history.forEach((h,i)=>{
+    const div=document.createElement('div');
+    div.className='hist-item';
+    div.innerHTML=`<div class="hist-meta">${h.meta} · ${h.ts}${i>0?' · <span style="cursor:pointer;text-decoration:underline;" onclick="this.closest(\'.hist-item\').querySelector(\'.adv-text\').style.display=this.closest(\'.hist-item\').querySelector(\'.adv-text\').style.display===\'none\'?\'block\':\'none\'">toggle</span>':''}</div><div class="adv-text"${i>0?' style="display:none"':''}>${formatAdvice(h.text)}</div>`;
+    el.appendChild(div);
+  });
+}
+
+function formatAdvice(text){
+  return text
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^###\s+(.+)$/gm,'<div class="adv-section-title">$1</div>')
+    .replace(/^##\s+(.+)$/gm,'<div class="adv-section-title">$1</div>')
+    .replace(/(SNAP MULLIGAN)/gi,'<span class="v-snap">🚫 SNAP MULLIGAN</span>')
+    .replace(/\bMULLIGAN\b(?!\s+to)/gi,'<span class="v-mull">↩ MULLIGAN</span>')
+    .replace(/\bKEEP\b/gi,'<span class="v-keep">✅ KEEP</span>')
+    .replace(/^[-•]\s+(.+)$/gm,'<div class="adv-bullet">$1</div>')
+    .replace(/\n\n/g,'<br><br>')
+    .replace(/\n/g,'<br>');
+}
+
+
+// ══ THEME ══
+let _darkMode = true;
+function toggleTheme(){
+  _darkMode = !_darkMode;
+  document.documentElement.setAttribute('data-theme', _darkMode?'dark':'light');
+  const btn = document.getElementById('theme-btn');
+  if(btn) btn.textContent = _darkMode ? '☀️' : '🌙';
+  try{localStorage.setItem('sgTheme', _darkMode?'dark':'light');}catch(e){}
+}
+function initTheme(){
+  try{
+    const saved = localStorage.getItem('sgTheme');
+    if(saved==='light'){
+      _darkMode=false;
+      document.documentElement.setAttribute('data-theme','light');
+      const btn=document.getElementById('theme-btn');
+      if(btn) btn.textContent='🌙';
+    }
+  }catch(e){}
+}
+
+// ══ SOUNDS ══
+let _audioCtx = null;
+let _soundEnabled = true;
+function getAudio(){ if(!_audioCtx) _audioCtx = new(window.AudioContext||window.webkitAudioContext)(); return _audioCtx; }
+
+function playComboReady(){
+  if(!_soundEnabled) return;
+  try{
+    const ctx=getAudio();
+    [[523,.0],[659,.13],[784,.26],[1047,.39]].forEach(([freq,t])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.frequency.value=freq;o.type='sine';
+      g.gain.setValueAtTime(0,ctx.currentTime+t);
+      g.gain.linearRampToValueAtTime(.14,ctx.currentTime+t+.05);
+      g.gain.linearRampToValueAtTime(0,ctx.currentTime+t+.22);
+      o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.25);
+    });
+  }catch(e){}
+}
+
+function playCardDrop(){
+  if(!_soundEnabled) return;
+  try{
+    const ctx=getAudio();
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.connect(g);g.connect(ctx.destination);
+    o.frequency.value=220;o.type='sine';
+    g.gain.setValueAtTime(.08,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.1);
+    o.start(ctx.currentTime);o.stop(ctx.currentTime+.12);
+  }catch(e){}
+}
+
+function toggleSound(){
+  _soundEnabled=!_soundEnabled;
+  const btn=document.getElementById('sound-btn');
+  if(btn) btn.textContent=_soundEnabled?'🔊':'🔇';
+}
+
+// ══ SCRYFALL CARD IMAGES ══
+const _sfCache={};
+let _sfTimer=null;
+let _sfTT=null;
+
+function getSfTT(){
+  if(!_sfTT){
+    _sfTT=document.createElement('div');
+    _sfTT.style.cssText='position:fixed;z-index:99999;pointer-events:none;display:none;border-radius:14px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.95),0 0 0 1px rgba(255,255,255,.1);transition:opacity .18s ease;opacity:0;width:210px;';
+    const img=document.createElement('img');
+    img.id='sf-img';img.style.cssText='width:210px;display:block;';
+    _sfTT.appendChild(img);
+    document.body.appendChild(_sfTT);
+  }
+  return _sfTT;
+}
+
+async function fetchSF(name){
+  if(_sfCache[name]!==undefined) return _sfCache[name];
+  _sfCache[name]=null; // prevent duplicate requests
+  try{
+    const r=await fetch('https://api.scryfall.com/cards/named?exact='+encodeURIComponent(name));
+    const d=await r.json();
+    _sfCache[name]=d.image_uris?.normal||d.card_faces?.[0]?.image_uris?.normal||null;
+  }catch(e){_sfCache[name]=null;}
+  return _sfCache[name];
+}
+
+function showSF(e,name){
+  clearTimeout(_sfTimer);
+  _sfTimer=setTimeout(async()=>{
+    const url=await fetchSF(name);
+    if(!url) return;
+    const tt=getSfTT();
+    const img=document.getElementById('sf-img');
+    img.onload=()=>{tt.style.display='block';setTimeout(()=>tt.style.opacity='1',10);};
+    img.src=url;
+    posSF(e);
+  },280);
+}
+
+function posSF(e){
+  const tt=getSfTT();
+  if(tt.style.display==='none') return;
+  const x=e.clientX+18, y=e.clientY-30;
+  const W=window.innerWidth, H=window.innerHeight;
+  tt.style.left=(x+215>W?x-228:x)+'px';
+  tt.style.top=(y+295>H?H-305:Math.max(8,y))+'px';
+}
+
+function hideSF(){
+  clearTimeout(_sfTimer);
+  const tt=getSfTT();
+  tt.style.opacity='0';
+  setTimeout(()=>{if(tt.style.opacity==='0')tt.style.display='none';},180);
+}
+
+// Attach to elements with data-sf attribute
+function attachSF(){
+  document.querySelectorAll('[data-sf]').forEach(el=>{
+    el.removeEventListener('mouseenter',el._sfEnter||noop);
+    el.removeEventListener('mousemove',el._sfMove||noop);
+    el.removeEventListener('mouseleave',el._sfLeave||noop);
+    el._sfEnter=e=>showSF(e,el.dataset.sf);
+    el._sfMove=e=>posSF(e);
+    el._sfLeave=hideSF;
+    el.addEventListener('mouseenter',el._sfEnter);
+    el.addEventListener('mousemove',el._sfMove);
+    el.addEventListener('mouseleave',el._sfLeave);
+  });
+}
+function noop(){}
+
+
+
+
+
+
+
+// ══════════════════════ BOOT ══════════════════════
+document.body.classList.add("mulligan-mode");
+initTheme();
+initLives();
+initOppTracker();
+// CSS handles panel visibility via body.mulligan-mode class
+initSituations();
+initPickerFilters();
+renderPicker();
+renderHand();
+renderComboStatus();
+// calcProb runs on user interaction only, not on boot
+renderTimer();
+</script>
+</body>
+</html>
